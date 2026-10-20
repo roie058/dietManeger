@@ -20,10 +20,13 @@ import {
   Check,
   X,
   Flame,
-  Award
+  Award,
+  Barcode,
+  Camera
 } from 'lucide-react'
 import { COMMON_FOOD_LIBRARY } from '../data/initialData'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
+import AddFoodModal from './AddFoodModal'
 
 export default function MacroDashboard({ 
   profile, 
@@ -31,7 +34,9 @@ export default function MacroDashboard({
   onAddMeal, 
   onDeleteMeal,
   dailyVitaminsCovered = [],
-  onToggleVitamin
+  onToggleVitamin,
+  foodLibrary = COMMON_FOOD_LIBRARY,
+  onAddNewFoodToLibrary
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFoodCategory, setSelectedFoodCategory] = useState('All')
@@ -40,6 +45,7 @@ export default function MacroDashboard({
   const [previewFood, setPreviewFood] = useState(null)
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [showMicrosInForm, setShowMicrosInForm] = useState(false)
+  const [isAddFoodModalOpen, setIsAddFoodModalOpen] = useState(false)
 
   const [customMeal, setCustomMeal] = useState({
     name: '',
@@ -135,7 +141,7 @@ export default function MacroDashboard({
   const recommendedFoods = React.useMemo(() => {
     if (lowMicros.length === 0) return []
     const lowIds = lowMicros.map(m => m.id)
-    return COMMON_FOOD_LIBRARY.filter(food => {
+    return foodLibrary.filter(food => {
       if (!food.micros) return false
       return lowIds.some(id => {
         const val = food.micros[id] || 0
@@ -143,7 +149,7 @@ export default function MacroDashboard({
         return microMeta && (val / microMeta.targetValue) >= 0.25
       })
     }).slice(0, 3)
-  }, [lowMicros])
+  }, [lowMicros, foodLibrary])
 
   // Filtered Micronutrients by Category
   const filteredMicros = microStats.filter(micro => {
@@ -159,7 +165,7 @@ export default function MacroDashboard({
   const foodCategories = ['All', 'Protein', 'Carbs', 'Healthy Fats', 'Dairy', 'Produce', 'Supplement']
 
   // Filtered Quick Foods with micronutrient keyword searching
-  const filteredQuickFoods = COMMON_FOOD_LIBRARY.filter(f => {
+  const filteredQuickFoods = foodLibrary.filter(f => {
     const matchesCat = selectedFoodCategory === 'All' || f.category === selectedFoodCategory
     const q = searchQuery.toLowerCase().trim()
     if (!q) return matchesCat
@@ -714,12 +720,22 @@ export default function MacroDashboard({
               <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Today's Food Log</h3>
               <span className="badge badge-emerald">{mealLogs.length} logged</span>
             </div>
-            <button 
-              className="btn btn-primary btn-sm"
-              onClick={() => setShowCustomModal(true)}
-            >
-              <Plus size={15} /> Log Custom Food
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsAddFoodModalOpen(true)}
+              >
+                <Barcode size={14} color="var(--accent-blue)" />
+                <span>Scan Barcode / Label</span>
+              </button>
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={() => setShowCustomModal(true)}
+              >
+                <Plus size={15} /> Log Custom Food
+              </button>
+            </div>
           </div>
 
           {mealLogs.length === 0 ? (
@@ -857,7 +873,17 @@ export default function MacroDashboard({
               <Zap size={18} color="var(--accent-yellow)" />
               <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Quick Food Library</h3>
             </div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Includes Vitamins & Minerals</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Includes Vitamins & Minerals</span>
+              <button
+                type="button"
+                onClick={() => setIsAddFoodModalOpen(true)}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+              >
+                <Plus size={13} color="var(--primary-light)" /> Add Food
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -1387,6 +1413,19 @@ export default function MacroDashboard({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Add Food Modal (Barcode / Photo OCR / Manual) */}
+      {isAddFoodModalOpen && (
+        <AddFoodModal
+          isOpen={isAddFoodModalOpen}
+          onClose={() => setIsAddFoodModalOpen(false)}
+          onSave={(newFood) => {
+            if (onAddNewFoodToLibrary) onAddNewFoodToLibrary(newFood)
+            handleQuickAdd(newFood)
+            setIsAddFoodModalOpen(false)
+          }}
+        />
       )}
 
     </div>

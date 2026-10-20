@@ -7,16 +7,18 @@ import {
   ChefHat, 
   ShoppingCart, 
   Sparkles,
-  Calendar
+  Calendar,
+  Database
 } from 'lucide-react'
 
 export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
   const navItems = [
     { id: 'dashboard', label: 'Daily Macros', icon: Flame },
     { id: 'tdee', label: 'Goal & TDEE', icon: Target },
+    { id: 'mealprep', label: 'Recipes & Prep', icon: ChefHat },
+    { id: 'foodlibrary', label: 'Food Database', icon: Database },
     { id: 'vitamins', label: 'Vitamins & Minerals', icon: Pill },
     { id: 'water', label: 'Hydration', icon: Droplets },
-    { id: 'mealprep', label: 'Meal Prep', icon: ChefHat },
     { id: 'shopping', label: 'Shopping List', icon: ShoppingCart }
   ]
 

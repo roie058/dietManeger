@@ -5,12 +5,15 @@ import TdeeCalculator from './components/TdeeCalculator'
 import VitaminGuide from './components/VitaminGuide'
 import WaterTracker from './components/WaterTracker'
 import MealPlanner from './components/MealPlanner'
+import FoodDatabaseView from './components/FoodDatabaseView'
 import ShoppingList from './components/ShoppingList'
 
 import { 
   DEFAULT_USER_PROFILE, 
   DEFAULT_MEAL_LOGS, 
-  DEFAULT_SHOPPING_LIST 
+  DEFAULT_SHOPPING_LIST,
+  COMMON_FOOD_LIBRARY,
+  DEFAULT_RECIPES
 } from './data/initialData'
 import { loadStorage, saveStorage } from './utils/storage'
 
@@ -42,6 +45,16 @@ export default function App() {
     loadStorage('nutriflow_streak', 6)
   )
 
+  // Centralized Food Library state
+  const [foodLibrary, setFoodLibrary] = useState(() => 
+    loadStorage('nutriflow_food_library', COMMON_FOOD_LIBRARY)
+  )
+
+  // Centralized Recipes state
+  const [recipes, setRecipes] = useState(() => 
+    loadStorage('nutriflow_recipes', DEFAULT_RECIPES)
+  )
+
   // Sync to localStorage
   useEffect(() => {
     saveStorage('nutriflow_profile', profile)
@@ -63,7 +76,15 @@ export default function App() {
     saveStorage('nutriflow_shopping', shoppingItems)
   }, [shoppingItems])
 
-  // Actions
+  useEffect(() => {
+    saveStorage('nutriflow_food_library', foodLibrary)
+  }, [foodLibrary])
+
+  useEffect(() => {
+    saveStorage('nutriflow_recipes', recipes)
+  }, [recipes])
+
+  // --- Actions ---
   const handleAddMeal = (newMeal) => {
     setMealLogs([newMeal, ...mealLogs])
   }
@@ -117,6 +138,33 @@ export default function App() {
     setActiveTab('shopping')
   }
 
+  // Food Library Handlers
+  const handleAddNewFoodToLibrary = (newFood) => {
+    setFoodLibrary(prev => {
+      const filtered = prev.filter(f => f.id !== newFood.id)
+      return [newFood, ...filtered]
+    })
+  }
+
+  const handleDeleteFoodFromLibrary = (foodId) => {
+    setFoodLibrary(prev => prev.filter(f => f.id !== foodId))
+  }
+
+  // Recipe Handlers
+  const handleSaveRecipe = (recipeData) => {
+    setRecipes(prev => {
+      const exists = prev.some(r => r.id === recipeData.id)
+      if (exists) {
+        return prev.map(r => r.id === recipeData.id ? recipeData : r)
+      }
+      return [recipeData, ...prev]
+    })
+  }
+
+  const handleDeleteRecipe = (recipeId) => {
+    setRecipes(prev => prev.filter(r => r.id !== recipeId))
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar 
@@ -140,6 +188,8 @@ export default function App() {
             onDeleteMeal={handleDeleteMeal}
             dailyVitaminsCovered={dailyVitaminsCovered}
             onToggleVitamin={handleToggleVitamin}
+            foodLibrary={foodLibrary}
+            onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
           />
         )}
 
@@ -147,6 +197,27 @@ export default function App() {
           <TdeeCalculator 
             profile={profile}
             onUpdateProfile={handleUpdateProfile}
+          />
+        )}
+
+        {activeTab === 'mealprep' && (
+          <MealPlanner 
+            recipes={recipes}
+            onSaveRecipe={handleSaveRecipe}
+            onDeleteRecipe={handleDeleteRecipe}
+            foodLibrary={foodLibrary}
+            onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
+            onAddIngredientsToShoppingList={handleAddBatchToShopping}
+            onLogMeal={handleAddMeal}
+          />
+        )}
+
+        {activeTab === 'foodlibrary' && (
+          <FoodDatabaseView 
+            foodLibrary={foodLibrary}
+            onAddFood={handleAddNewFoodToLibrary}
+            onDeleteFood={handleDeleteFoodFromLibrary}
+            onQuickLogMeal={handleAddMeal}
           />
         )}
 
@@ -163,12 +234,6 @@ export default function App() {
             currentWater={currentWater}
             waterGoal={profile.waterGoal || 3200}
             onUpdateWater={handleUpdateWater}
-          />
-        )}
-
-        {activeTab === 'mealprep' && (
-          <MealPlanner 
-            onAddIngredientsToShoppingList={handleAddBatchToShopping}
           />
         )}
 

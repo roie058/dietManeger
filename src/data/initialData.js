@@ -317,3 +317,53 @@ export const DEFAULT_MEAL_PREP_TEMPLATES = [
     tips: 'Store salmon with a wedge of lemon. Warm gently or enjoy chilled over greens.'
   }
 ]
+
+export const DEFAULT_RECIPES = [
+  {
+    id: 'r1',
+    title: 'High-Protein Paprika Chicken & Sweet Potato Bowl',
+    category: 'Lunch',
+    servings: 4,
+    prepTime: '35 mins',
+    instructions: '1. Season chicken breasts with smoked paprika, garlic, salt and 1 tbsp olive oil.\n2. Dice sweet potatoes and bake at 200°C for 25 minutes.\n3. Pan-sear chicken breast fillets for 6-7 minutes on each side until golden and cooked through.\n4. Lightly steam baby spinach and divide evenly into 4 glass meal-prep bowls.',
+    tips: 'Seal tightly in glass meal prep containers. Keeps fresh in refrigerator for 4-5 days.',
+    ingredients: [
+      { foodId: 'f1', foodName: 'Grilled Chicken Breast', amountGrams: 600, servingDesc: '600g' },
+      { foodId: 'f9', foodName: 'Sweet Potato (Baked)', amountGrams: 520, servingDesc: '4 medium (520g)' },
+      { foodId: 'f13', foodName: 'Steamed Baby Spinach & Kale', amountGrams: 200, servingDesc: '200g' },
+      { foodId: 'f10', foodName: 'Extra Virgin Olive Oil', amountGrams: 28, servingDesc: '2 tbsp (28ml)' }
+    ]
+  },
+  {
+    id: 'r2',
+    title: 'Omega-3 Salmon, Rice & Avocado Power Plate',
+    category: 'Dinner',
+    servings: 3,
+    prepTime: '25 mins',
+    instructions: '1. Season wild salmon fillets with sea salt, black pepper and a squeeze of fresh lemon.\n2. Sear on a hot non-stick skillet skin-side down for 4 minutes, flip and cook 3 minutes more.\n3. Plate with warm steamed brown/jasmine rice, sliced avocado and wilted greens.',
+    tips: 'Super high in natural Omega-3 fatty acids, Potassium and Vitamin D3.',
+    ingredients: [
+      { foodId: 'f6', foodName: 'Pan-Seared Atlantic Salmon', amountGrams: 480, servingDesc: '3 fillets (480g)' },
+      { foodId: 'f5', foodName: 'Steamed Jasmine / Brown Rice', amountGrams: 450, servingDesc: '450g cooked' },
+      { foodId: 'f7', foodName: 'Fresh Hass Avocado', amountGrams: 140, servingDesc: '1 whole avocado' },
+      { foodId: 'f13', foodName: 'Steamed Baby Spinach & Kale', amountGrams: 150, servingDesc: '150g' }
+    ]
+  },
+  {
+    id: 'r3',
+    title: 'Overnight Protein Oats with Berries & Greek Yogurt',
+    category: 'Breakfast',
+    servings: 2,
+    prepTime: '10 mins',
+    instructions: '1. In mason jars, mix rolled oats, Greek yogurt, whey protein and 150ml water or unsweetened almond milk.\n2. Stir until smooth, seal and refrigerate overnight (minimum 4 hours).\n3. Before serving, top with sliced banana and crunchy almonds.',
+    tips: 'The ultimate grab-and-go morning meal with slow-digesting complex carbs and 38g of protein per serving.',
+    ingredients: [
+      { foodId: 'f2', foodName: 'Rolled Oats with Berries', amountGrams: 160, servingDesc: '160g' },
+      { foodId: 'f3', foodName: 'Non-Fat Greek Yogurt (0%)', amountGrams: 300, servingDesc: '300g' },
+      { foodId: 'f8', foodName: 'Whey Protein Shake (with water)', amountGrams: 60, servingDesc: '2 scoops (60g)' },
+      { foodId: 'f11', foodName: 'Organic Almonds', amountGrams: 30, servingDesc: '1 handful (30g)' },
+      { foodId: 'f12', foodName: 'Large Banana', amountGrams: 120, servingDesc: '1 medium (120g)' }
+    ]
+  }
+]
+
