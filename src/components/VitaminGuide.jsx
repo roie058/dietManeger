@@ -11,11 +11,22 @@ import {
 } from 'lucide-react'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
 
-export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) {
+export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, mealLogs = [] }) {
   const [selectedFilter, setSelectedFilter] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
 
   const categories = ['All', 'Vitamin', 'Mineral', 'Fatty Acid', 'Electrolyte']
+
+  // Food intake calculation per micronutrient
+  const foodIntakes = React.useMemo(() => {
+    return MICRONUTRIENTS_DATA.reduce((acc, item) => {
+      const sum = mealLogs.reduce((total, meal) => {
+        return total + (parseFloat(meal.micros?.[item.id]) || 0)
+      }, 0)
+      acc[item.id] = Math.round(sum * 10) / 10
+      return acc
+    }, {})
+  }, [mealLogs])
 
   const filteredData = MICRONUTRIENTS_DATA.filter((item) => {
     const matchesCat = selectedFilter === 'All' || item.category === selectedFilter
@@ -25,7 +36,12 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) 
     return matchesCat && matchesSearch
   })
 
-  const coveredCount = MICRONUTRIENTS_DATA.filter(item => dailyVitaminsCovered.includes(item.id)).length
+  // Covered if manually checked OR food intake >= targetValue
+  const isItemCovered = (item) => {
+    return dailyVitaminsCovered.includes(item.id) || (foodIntakes[item.id] || 0) >= (item.targetValue || 1)
+  }
+
+  const coveredCount = MICRONUTRIENTS_DATA.filter(item => isItemCovered(item)).length
   const coveredPercent = Math.round((coveredCount / MICRONUTRIENTS_DATA.length) * 100)
 
   return (
@@ -121,7 +137,10 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) 
         gap: '20px'
       }}>
         {filteredData.map((item) => {
-          const isCovered = dailyVitaminsCovered.includes(item.id)
+          const isCovered = isItemCovered(item)
+          const intake = foodIntakes[item.id] || 0
+          const intakePct = Math.round((intake / (item.targetValue || 1)) * 100)
+          const isFoodMet = intake >= (item.targetValue || 1)
 
           return (
             <div 
@@ -156,6 +175,11 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <span className="badge badge-purple">{item.category}</span>
                       <span className="badge badge-emerald">{item.tag}</span>
+                      {isFoodMet && (
+                        <span className="badge badge-blue" style={{ fontSize: '0.68rem' }}>
+                          🍽️ Met from Food
+                        </span>
+                      )}
                     </div>
                     <h3 style={{ fontSize: '1.15rem', fontWeight: '700' }}>{item.name}</h3>
                   </div>
@@ -164,7 +188,7 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) 
                     onClick={() => onToggleVitamin(item.id)}
                     className="btn btn-ghost"
                     style={{ padding: '4px', cursor: 'pointer' }}
-                    title={isCovered ? 'Mark as not covered' : 'Mark covered today'}
+                    title={dailyVitaminsCovered.includes(item.id) ? 'Mark as not covered' : 'Mark covered today'}
                   >
                     {isCovered ? (
                       <CheckCircle size={24} color="var(--primary-light)" />
@@ -181,7 +205,7 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) 
                   background: 'rgba(255, 255, 255, 0.03)',
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-md)',
-                  marginBottom: '14px',
+                  marginBottom: '10px',
                   fontSize: '0.82rem'
                 }}>
                   <div>
@@ -191,6 +215,31 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin }) 
                   <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '12px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Optimal: </span>
                     <strong style={{ color: 'var(--primary-light)' }}>{item.optimalTarget}</strong>
+                  </div>
+                </div>
+
+                {/* Real-time food intake bar */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '8px 12px',
+                  marginBottom: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '4px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Logged Food Intake Today:</span>
+                    <strong style={{ color: isFoodMet ? 'var(--primary-light)' : '#fff' }}>
+                      {intake} / {item.targetValue} {item.unit} ({intakePct}%)
+                    </strong>
+                  </div>
+                  <div className="progress-container" style={{ height: '5px' }}>
+                    <div 
+                      className="progress-bar" 
+                      style={{ 
+                        width: `${Math.min(100, intakePct)}%`,
+                        background: isFoodMet ? 'var(--primary-light)' : (item.color || 'var(--accent-purple)')
+                      }} 
+                    />
                   </div>
                 </div>
 

@@ -138,6 +138,8 @@ export default function App() {
             mealLogs={mealLogs}
             onAddMeal={handleAddMeal}
             onDeleteMeal={handleDeleteMeal}
+            dailyVitaminsCovered={dailyVitaminsCovered}
+            onToggleVitamin={handleToggleVitamin}
           />
         )}
 
@@ -152,6 +154,7 @@ export default function App() {
           <VitaminGuide 
             dailyVitaminsCovered={dailyVitaminsCovered}
             onToggleVitamin={handleToggleVitamin}
+            mealLogs={mealLogs}
           />
         )}
 
