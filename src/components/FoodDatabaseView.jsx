@@ -101,11 +101,16 @@ export default function FoodDatabaseView({
             <Search 
               size={18} 
               color="var(--text-muted)" 
+              aria-hidden="true"
               style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} 
             />
             <input
               type="text"
-              placeholder="Search food by name, category, or barcode number..."
+              id="food-library-search"
+              name="foodSearch"
+              autoComplete="off"
+              aria-label="Search food by name, category, or barcode number"
+              placeholder="Search food by name, category, or barcode number…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field"
@@ -117,6 +122,8 @@ export default function FoodDatabaseView({
             {categories.map(cat => (
               <button
                 key={cat}
+                type="button"
+                aria-pressed={selectedCategory === cat}
                 onClick={() => setSelectedCategory(cat)}
                 style={{
                   padding: '6px 14px',
@@ -218,25 +225,25 @@ export default function FoodDatabaseView({
                   }}>
                     <div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Calories</div>
-                      <div style={{ fontWeight: '800', color: 'var(--primary-light)', fontSize: '1.05rem' }}>
+                      <div className="tabular-nums" style={{ fontWeight: '800', color: 'var(--primary-light)', fontSize: '1.05rem' }}>
                         {food.calories}
                       </div>
                     </div>
                     <div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--macro-protein)' }}>Protein</div>
-                      <div style={{ fontWeight: '700', color: 'var(--macro-protein)', fontSize: '0.96rem' }}>
+                      <div className="tabular-nums" style={{ fontWeight: '700', color: 'var(--macro-protein)', fontSize: '0.96rem' }}>
                         {food.protein}g
                       </div>
                     </div>
                     <div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--macro-carbs)' }}>Carbs</div>
-                      <div style={{ fontWeight: '700', color: 'var(--macro-carbs)', fontSize: '0.96rem' }}>
+                      <div className="tabular-nums" style={{ fontWeight: '700', color: 'var(--macro-carbs)', fontSize: '0.96rem' }}>
                         {food.carbs}g
                       </div>
                     </div>
                     <div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--macro-fat)' }}>Fat</div>
-                      <div style={{ fontWeight: '700', color: 'var(--macro-fat)', fontSize: '0.96rem' }}>
+                      <div className="tabular-nums" style={{ fontWeight: '700', color: 'var(--macro-fat)', fontSize: '0.96rem' }}>
                         {food.fat}g
                       </div>
                     </div>
@@ -248,16 +255,16 @@ export default function FoodDatabaseView({
                       <span key={idx} className="micro-pill highlight">{k}</span>
                     ))}
                     {food.micros?.calcium > 0 && !food.keyMicros && (
-                      <span className="micro-pill">Calcium: {food.micros.calcium}mg</span>
+                      <span className="micro-pill tabular-nums">Calcium: {food.micros.calcium}mg</span>
                     )}
                     {food.micros?.iron > 0 && !food.keyMicros && (
-                      <span className="micro-pill">Iron: {food.micros.iron}mg</span>
+                      <span className="micro-pill tabular-nums">Iron: {food.micros.iron}mg</span>
                     )}
                     {food.micros?.magnesium > 0 && !food.keyMicros && (
-                      <span className="micro-pill">Magnesium: {food.micros.magnesium}mg</span>
+                      <span className="micro-pill tabular-nums">Magnesium: {food.micros.magnesium}mg</span>
                     )}
                     {food.micros?.vit_d > 0 && !food.keyMicros && (
-                      <span className="micro-pill">Vit D: {food.micros.vit_d}IU</span>
+                      <span className="micro-pill tabular-nums">Vit D: {food.micros.vit_d}IU</span>
                     )}
                   </div>
                 </div>
@@ -271,28 +278,41 @@ export default function FoodDatabaseView({
                   borderTop: '1px solid var(--border-color)'
                 }}>
                   <button
+                    type="button"
                     onClick={() => handleQuickAdd(food)}
                     className="btn btn-secondary btn-sm"
+                    aria-label={`Log ${food.name} to daily meals`}
                   >
                     {addedNotice === food.id ? (
                       <>
-                        <Check size={14} color="var(--primary-light)" /> Logged!
+                        <Check size={14} color="var(--primary-light)" aria-hidden="true" /> Logged!
                       </>
                     ) : (
                       <>
-                        <Plus size={14} /> Log to Daily Meals
+                        <Plus size={14} aria-hidden="true" /> Log to Daily Meals
                       </>
                     )}
                   </button>
 
                   {isCustom && onDeleteFood && (
                     <button
+                      type="button"
                       onClick={() => onDeleteFood(food.id)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--accent-red)' }}
-                      title="Delete food from database"
+                      className="btn-ghost"
+                      style={{ 
+                        color: 'var(--accent-red)',
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                      aria-label={`Delete ${food.name} from database`}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   )}
                 </div>

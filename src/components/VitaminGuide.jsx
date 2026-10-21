@@ -117,10 +117,14 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
 
           {/* Search */}
           <div style={{ position: 'relative', width: '280px' }}>
-            <Search size={15} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+            <Search size={15} aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
             <input 
               type="text"
-              placeholder="Search vitamin, food, or symptom..."
+              id="vitamin-search"
+              name="vitaminSearch"
+              autoComplete="off"
+              aria-label="Search vitamin, food, or symptom"
+              placeholder="Search vitamin, food, or symptom…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field"
@@ -185,15 +189,28 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
                   </div>
 
                   <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isCovered}
+                    aria-label={`Mark ${item.name} as ${isCovered ? 'not covered' : 'covered today'}`}
                     onClick={() => onToggleVitamin(item.id)}
-                    className="btn btn-ghost"
-                    style={{ padding: '4px', cursor: 'pointer' }}
-                    title={dailyVitaminsCovered.includes(item.id) ? 'Mark as not covered' : 'Mark covered today'}
+                    className="btn-ghost"
+                    style={{ 
+                      minWidth: '44px',
+                      minHeight: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
                   >
                     {isCovered ? (
-                      <CheckCircle size={24} color="var(--primary-light)" />
+                      <CheckCircle size={24} color="var(--primary-light)" aria-hidden="true" />
                     ) : (
-                      <Circle size={24} color="var(--text-dim)" />
+                      <Circle size={24} color="var(--text-dim)" aria-hidden="true" />
                     )}
                   </button>
                 </div>

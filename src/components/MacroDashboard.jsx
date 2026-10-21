@@ -68,6 +68,18 @@ export default function MacroDashboard({
     }
   })
 
+  // Close modals on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (previewFood) setPreviewFood(null)
+        if (showCustomModal) setShowCustomModal(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [previewFood, showCustomModal])
+
   // Macro Totals
   const totals = mealLogs.reduce((acc, item) => {
     return {
@@ -632,7 +644,7 @@ export default function MacroDashboard({
                 }}>
                   {micro.topContributor ? (
                     <span title={`Main source: ${micro.topContributor.name} (+${micro.topContributor.amount} ${micro.unit})`}>
-                      Top: <strong style={{ color: '#cbd5e1' }}>{micro.topContributor.name.slice(0, 15)}...</strong>
+                      Top: <strong style={{ color: '#cbd5e1' }}>{micro.topContributor.name.slice(0, 15)}…</strong>
                     </span>
                   ) : (
                     <span style={{ color: 'var(--text-dim)' }}>No foods logged yet</span>
@@ -791,6 +803,10 @@ export default function MacroDashboard({
                         {/* Micronutrients expand toggle */}
                         {microEntries.length > 0 && (
                           <button
+                            type="button"
+                            aria-expanded={isExpanded}
+                            aria-controls={`meal-micros-${meal.id}`}
+                            aria-label={`Toggle vitamin and mineral breakdown for ${meal.name}`}
                             onClick={() => toggleMealExpanded(meal.id)}
                             className="btn btn-secondary btn-sm"
                             style={{ 
@@ -800,34 +816,40 @@ export default function MacroDashboard({
                               alignItems: 'center', 
                               gap: '4px' 
                             }}
-                            title="Toggle vitamin & mineral breakdown"
                           >
-                            <Sparkles size={12} color="var(--accent-purple)" />
+                            <Sparkles size={12} color="var(--accent-purple)" aria-hidden="true" />
                             <span>Micros</span>
-                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            {isExpanded ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
                           </button>
                         )}
 
                         <button 
+                          type="button"
                           onClick={() => onDeleteMeal(meal.id)}
                           className="btn-ghost"
                           style={{
-                            padding: '6px',
+                            minWidth: '44px',
+                            minHeight: '44px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             borderRadius: '8px',
                             border: 'none',
                             cursor: 'pointer',
                             color: 'var(--text-dim)'
                           }}
-                          title="Delete entry"
+                          aria-label={`Delete meal entry for ${meal.name}`}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={16} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
 
                     {/* Expandable Micronutrient Breakdown */}
                     {isExpanded && microEntries.length > 0 && (
-                      <div style={{
+                      <div 
+                        id={`meal-micros-${meal.id}`}
+                        style={{
                         padding: '10px 14px 14px 14px',
                         background: 'rgba(0, 0, 0, 0.25)',
                         borderTop: '1px solid rgba(255, 255, 255, 0.05)',
@@ -888,10 +910,14 @@ export default function MacroDashboard({
 
           {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: '12px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--text-muted)' }} />
+            <Search size={16} aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--text-muted)' }} />
             <input 
               type="text"
-              placeholder="Search food, nutrient (e.g. magnesium, iron, omega)..."
+              id="dashboard-food-search"
+              name="dashboardFoodSearch"
+              autoComplete="off"
+              aria-label="Search food or nutrient"
+              placeholder="Search food, nutrient (e.g. magnesium, iron, omega)…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field"
@@ -1001,6 +1027,9 @@ export default function MacroDashboard({
       {previewFood && (
         <div 
           onClick={() => setPreviewFood(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-food-title"
           style={{
             position: 'fixed',
             top: 0,
@@ -1032,7 +1061,7 @@ export default function MacroDashboard({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
                 <span className="badge badge-purple">{previewFood.category}</span>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: '800', marginTop: '6px' }}>
+                <h3 id="preview-food-title" style={{ fontSize: '1.3rem', fontWeight: '800', marginTop: '6px' }}>
                   {previewFood.name}
                 </h3>
                 <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
@@ -1043,9 +1072,19 @@ export default function MacroDashboard({
                 type="button"
                 onClick={() => setPreviewFood(null)}
                 className="btn-ghost"
-                style={{ padding: '6px', cursor: 'pointer' }}
+                aria-label="Close food details dialog"
+                style={{ 
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer' 
+                }}
               >
-                <X size={20} />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -1162,6 +1201,9 @@ export default function MacroDashboard({
       {showCustomModal && (
         <div 
           onClick={() => setShowCustomModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="custom-meal-title"
           style={{
             position: 'fixed',
             top: 0,
@@ -1191,19 +1233,37 @@ export default function MacroDashboard({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: '700' }}>
+              <h3 id="custom-meal-title" style={{ fontSize: '1.3rem', fontWeight: '700' }}>
                 Log Custom Food / Meal
               </h3>
-              <button onClick={() => setShowCustomModal(false)} className="btn-ghost" style={{ padding: '6px' }}>
-                <X size={18} />
+              <button 
+                type="button"
+                onClick={() => setShowCustomModal(false)} 
+                className="btn-ghost" 
+                aria-label="Close custom meal dialog"
+                style={{ 
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
             <form onSubmit={handleCustomSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className="input-group">
-                <label className="input-label">Food / Dish Name</label>
+                <label htmlFor="custom-meal-dish-name" className="input-label">Food / Dish Name</label>
                 <input 
                   type="text" 
+                  id="custom-meal-dish-name"
+                  name="customDishName"
+                  autoComplete="off"
                   required
                   placeholder="e.g., Homemade Turkey Chili & Rice"
                   value={customMeal.name}

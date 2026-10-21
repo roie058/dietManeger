@@ -100,7 +100,9 @@ export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => setActiveTab(item.id)}
+                aria-current={isActive ? 'page' : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -121,7 +123,7 @@ export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
                   whiteSpace: 'nowrap'
                 }}
               >
-                <Icon size={16} />
+                <Icon size={16} aria-hidden="true" />
                 <span>{item.label}</span>
               </button>
             )
@@ -141,7 +143,7 @@ export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
             borderRadius: '10px',
             border: '1px solid var(--border-color)'
           }}>
-            <Calendar size={14} color="var(--primary-light)" />
+            <Calendar size={14} color="var(--primary-light)" aria-hidden="true" />
             <span>{todayStr}</span>
           </div>
 
@@ -157,8 +159,8 @@ export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
             fontWeight: '600',
             fontSize: '0.82rem'
           }}>
-            <Flame size={15} />
-            <span>{streakCount} Day Streak</span>
+            <Flame size={15} aria-hidden="true" />
+            <span className="tabular-nums">{streakCount} Day Streak</span>
           </div>
         </div>
       </div>

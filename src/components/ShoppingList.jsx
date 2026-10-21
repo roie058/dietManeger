@@ -86,20 +86,21 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
         {/* Counter and clear actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--primary-light)' }}>
+            <div className="tabular-nums" style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--primary-light)' }}>
               {completedCount} / {totalCount}
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Items checked off ({progressPercent}%)
+              Items checked off (<span className="tabular-nums">{progressPercent}%</span>)
             </div>
           </div>
 
           {completedCount > 0 && (
             <button 
+              type="button"
               onClick={onClearCompleted}
               className="btn btn-secondary btn-sm"
               style={{ color: 'var(--accent-red)' }}
-              title="Remove checked off items"
+              aria-label="Clear all checked off grocery items"
             >
               Clear Checked
             </button>
@@ -112,7 +113,11 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <input 
             type="text" 
-            placeholder="Add grocery item (e.g. 500g Chicken, Blueberries, Greek Yogurt)..."
+            id="new-grocery-item-input"
+            name="groceryItem"
+            autoComplete="off"
+            aria-label="New grocery item"
+            placeholder="Add grocery item (e.g. 500g Chicken, Blueberries, Greek Yogurt)…"
             value={newItemText}
             onChange={(e) => setNewItemText(e.target.value)}
             className="input-field"
@@ -120,6 +125,9 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
           />
 
           <select 
+            id="new-grocery-category-select"
+            name="groceryCategory"
+            aria-label="Grocery department category"
             value={newCategory} 
             onChange={(e) => setNewCategory(e.target.value)}
             className="select-field"
@@ -130,8 +138,9 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
             ))}
           </select>
 
-          <button type="submit" className="btn btn-primary">
-            <Plus size={16} /> Add to Cart
+          <button type="submit" className="btn btn-primary" aria-label="Add grocery item to cart">
+            <Plus size={16} aria-hidden="true" />
+            <span>Add to Cart</span>
           </button>
         </form>
       </div>
@@ -140,7 +149,7 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {Object.keys(grouped).length === 0 ? (
           <div className="glass-panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-            <ShoppingCart size={36} color="var(--text-dim)" style={{ margin: '0 auto 12px' }} />
+            <ShoppingCart size={36} color="var(--text-dim)" aria-hidden="true" style={{ margin: '0 auto 12px' }} />
             <p>Your grocery list is empty.</p>
             <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Add items above or transfer recipes from the Meal Prep tab!</p>
           </div>
@@ -158,7 +167,7 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary-light)' }}>
                   {categoryName}
                 </h3>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
+                <span className="tabular-nums" style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
                   {items.length} {items.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
@@ -167,24 +176,42 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
                 {items.map((item) => (
                   <div 
                     key={item.id}
-                    onClick={() => onToggleItem(item.id)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      background: item.completed ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)',
-                      border: item.completed ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-color)',
-                      cursor: 'pointer',
-                      transition: 'var(--transition)'
+                      gap: '8px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={item.completed}
+                      aria-label={`Mark ${item.text} as ${item.completed ? 'not completed' : 'completed'}`}
+                      onClick={() => onToggleItem(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault()
+                          onToggleItem(item.id)
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        flex: 1,
+                        padding: '12px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: item.completed ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                        border: item.completed ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'var(--transition)'
+                      }}
+                    >
                       {item.completed ? (
-                        <CheckSquare size={18} color="var(--primary-light)" />
+                        <CheckSquare size={18} color="var(--primary-light)" aria-hidden="true" />
                       ) : (
-                        <Square size={18} color="var(--text-dim)" />
+                        <Square size={18} color="var(--text-dim)" aria-hidden="true" />
                       )}
                       <span style={{
                         fontSize: '0.92rem',
@@ -194,24 +221,27 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
                       }}>
                         {item.text}
                       </span>
-                    </div>
+                    </button>
 
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteItem(item.id)
-                      }}
+                      type="button"
+                      onClick={() => onDeleteItem(item.id)}
                       className="btn-ghost"
+                      aria-label={`Delete ${item.text}`}
                       style={{
-                        padding: '4px',
-                        borderRadius: '6px',
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '8px',
                         border: 'none',
                         cursor: 'pointer',
-                        color: 'var(--text-dim)'
+                        color: 'var(--text-dim)',
+                        transition: 'var(--transition)'
                       }}
-                      title="Delete item"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </div>
                 ))}

@@ -21,9 +21,7 @@ export default function WaterTracker({ currentWater, waterGoal, onUpdateWater })
   }
 
   const handleReset = () => {
-    if (window.confirm('Reset today’s water intake?')) {
-      onUpdateWater(0)
-    }
+    onUpdateWater(0)
   }
 
   const handleCustomAdd = (e) => {
@@ -49,19 +47,19 @@ export default function WaterTracker({ currentWater, waterGoal, onUpdateWater })
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span className="badge badge-blue">Optimal Cellular Hydration</span>
-              <span className="badge badge-emerald">Daily Goal: {(waterGoal / 1000).toFixed(1)}L</span>
+              <span className="badge badge-emerald">Daily Goal: <span className="tabular-nums">{(waterGoal / 1000).toFixed(1)}L</span></span>
             </div>
             
-            <h2 style={{ fontSize: '2.4rem', fontWeight: '800', marginBottom: '4px' }}>
+            <h2 className="tabular-nums" style={{ fontSize: '2.4rem', fontWeight: '800', marginBottom: '4px' }}>
               {currentWater} <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontWeight: '400' }}>/ {waterGoal} ml</span>
             </h2>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginBottom: '16px' }}>
               {remaining > 0 ? (
-                <span>Only <strong style={{ color: 'var(--accent-blue)' }}>{remaining} ml</strong> left to hit peak performance!</span>
+                <span>Only <strong className="tabular-nums" style={{ color: 'var(--accent-blue)' }}>{remaining} ml</strong> left to hit peak performance!</span>
               ) : (
                 <span style={{ color: 'var(--primary-light)', fontWeight: '700' }}>
-                  🎉 Awesome job! You've satisfied your daily hydration quota!
+                  🎉 Awesome job! You’ve satisfied your daily hydration quota!
                 </span>
               )}
             </p>
@@ -70,7 +68,7 @@ export default function WaterTracker({ currentWater, waterGoal, onUpdateWater })
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Hydration Level</span>
-                <span style={{ fontWeight: '700', color: 'var(--accent-blue)' }}>{percent}%</span>
+                <span className="tabular-nums" style={{ fontWeight: '700', color: 'var(--accent-blue)' }}>{percent}%</span>
               </div>
               <div className="progress-container" style={{ height: '12px' }}>
                 <div 
@@ -92,75 +90,96 @@ export default function WaterTracker({ currentWater, waterGoal, onUpdateWater })
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <button 
+                type="button"
                 onClick={() => handleAddWater(250)}
                 className="btn btn-secondary"
+                aria-label="Add 250 ml standard glass of water"
                 style={{ padding: '14px', flexDirection: 'column', gap: '4px' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={16} color="var(--accent-blue)" />
-                  <span style={{ fontWeight: '700', fontSize: '1.05rem' }}>250 ml</span>
+                  <Plus size={16} color="var(--accent-blue)" aria-hidden="true" />
+                  <span className="tabular-nums" style={{ fontWeight: '700', fontSize: '1.05rem' }}>250 ml</span>
                 </div>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Standard Glass</span>
               </button>
 
               <button 
+                type="button"
                 onClick={() => handleAddWater(500)}
                 className="btn btn-secondary"
+                aria-label="Add 500 ml water bottle"
                 style={{ padding: '14px', flexDirection: 'column', gap: '4px' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={16} color="var(--accent-blue)" />
-                  <span style={{ fontWeight: '700', fontSize: '1.05rem' }}>500 ml</span>
+                  <Plus size={16} color="var(--accent-blue)" aria-hidden="true" />
+                  <span className="tabular-nums" style={{ fontWeight: '700', fontSize: '1.05rem' }}>500 ml</span>
                 </div>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Water Bottle</span>
               </button>
 
               <button 
+                type="button"
                 onClick={() => handleAddWater(750)}
                 className="btn btn-secondary"
+                aria-label="Add 750 ml sports shaker of water"
                 style={{ padding: '14px', flexDirection: 'column', gap: '4px' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={16} color="var(--accent-blue)" />
-                  <span style={{ fontWeight: '700', fontSize: '1.05rem' }}>750 ml</span>
+                  <Plus size={16} color="var(--accent-blue)" aria-hidden="true" />
+                  <span className="tabular-nums" style={{ fontWeight: '700', fontSize: '1.05rem' }}>750 ml</span>
                 </div>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Sports Shaker</span>
               </button>
 
               <button 
+                type="button"
                 onClick={() => handleAddWater(1000)}
                 className="btn btn-secondary"
+                aria-label="Add 1000 ml 1 liter jug of water"
                 style={{ padding: '14px', flexDirection: 'column', gap: '4px' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={16} color="var(--accent-blue)" />
-                  <span style={{ fontWeight: '700', fontSize: '1.05rem' }}>1000 ml</span>
+                  <Plus size={16} color="var(--accent-blue)" aria-hidden="true" />
+                  <span className="tabular-nums" style={{ fontWeight: '700', fontSize: '1.05rem' }}>1000 ml</span>
                 </div>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>1 Liter Jug</span>
               </button>
             </div>
 
             {/* Custom Input & Reset */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px', alignItems: 'center' }}>
               <form onSubmit={handleCustomAdd} style={{ display: 'flex', gap: '8px', flex: 1 }}>
                 <input 
                   type="number"
-                  placeholder="Custom ml (e.g. 350)"
+                  id="water-custom-ml"
+                  name="customWaterMl"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  aria-label="Custom milliliters of water"
+                  placeholder="Custom ml (e.g. 350)…"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   className="input-field"
                   style={{ padding: '8px 12px', fontSize: '0.85rem' }}
                 />
-                <button type="submit" className="btn btn-primary btn-sm">Add</button>
+                <button type="submit" className="btn btn-primary btn-sm" aria-label="Add custom water amount">Add</button>
               </form>
 
               <button 
+                type="button"
                 onClick={handleReset} 
-                className="btn btn-ghost btn-sm"
-                title="Reset to 0"
-                style={{ color: 'var(--text-dim)' }}
+                className="btn btn-ghost"
+                aria-label="Reset water intake to 0 ml"
+                style={{ 
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-dim)'
+                }}
               >
-                <RotateCcw size={15} />
+                <RotateCcw size={16} aria-hidden="true" />
               </button>
             </div>
           </div>

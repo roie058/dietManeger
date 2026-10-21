@@ -96,10 +96,11 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Gender Toggle */}
             <div className="input-group">
-              <label className="input-label">Biological Sex</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <label className="input-label" id="label-biological-sex">Biological Sex</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }} role="group" aria-labelledby="label-biological-sex">
                 <button
                   type="button"
+                  aria-pressed={formData.gender === 'male'}
                   onClick={() => setFormData({ ...formData, gender: 'male' })}
                   className={formData.gender === 'male' ? 'btn btn-primary' : 'btn btn-secondary'}
                 >
@@ -107,6 +108,7 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
                 </button>
                 <button
                   type="button"
+                  aria-pressed={formData.gender === 'female'}
                   onClick={() => setFormData({ ...formData, gender: 'female' })}
                   className={formData.gender === 'female' ? 'btn btn-primary' : 'btn btn-secondary'}
                 >
@@ -118,26 +120,34 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
             {/* Age & Height */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="input-group">
-                <label className="input-label">Age (years)</label>
+                <label htmlFor="tdee-age" className="input-label">Age (years)</label>
                 <input 
+                  id="tdee-age"
+                  name="age"
+                  inputMode="numeric"
+                  autoComplete="off"
                   type="number"
                   min="14"
                   max="100"
                   value={formData.age}
                   onChange={(e) => setFormData({ ...formData, age: Number(e.target.value) })}
-                  className="input-field"
+                  className="input-field tabular-nums"
                 />
               </div>
 
               <div className="input-group">
-                <label className="input-label">Height (cm)</label>
+                <label htmlFor="tdee-height" className="input-label">Height (cm)</label>
                 <input 
+                  id="tdee-height"
+                  name="height"
+                  inputMode="numeric"
+                  autoComplete="off"
                   type="number"
                   min="100"
                   max="240"
                   value={formData.height}
                   onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
-                  className="input-field"
+                  className="input-field tabular-nums"
                 />
               </div>
             </div>
@@ -145,36 +155,46 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
             {/* Current Weight & Target Weight */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="input-group">
-                <label className="input-label">Current Weight (kg)</label>
+                <label htmlFor="tdee-weight" className="input-label">Current Weight (kg)</label>
                 <input 
+                  id="tdee-weight"
+                  name="weight"
+                  inputMode="decimal"
+                  autoComplete="off"
                   type="number"
                   step="0.5"
                   min="35"
                   max="250"
                   value={formData.weight}
                   onChange={(e) => setFormData({ ...formData, weight: Number(e.target.value) })}
-                  className="input-field"
+                  className="input-field tabular-nums"
                 />
               </div>
 
               <div className="input-group">
-                <label className="input-label">Target Weight (kg)</label>
+                <label htmlFor="tdee-target-weight" className="input-label">Target Weight (kg)</label>
                 <input 
+                  id="tdee-target-weight"
+                  name="targetWeight"
+                  inputMode="decimal"
+                  autoComplete="off"
                   type="number"
                   step="0.5"
                   min="35"
                   max="250"
                   value={formData.targetWeight}
                   onChange={(e) => setFormData({ ...formData, targetWeight: Number(e.target.value) })}
-                  className="input-field"
+                  className="input-field tabular-nums"
                 />
               </div>
             </div>
 
             {/* Activity Level */}
             <div className="input-group">
-              <label className="input-label">Activity Level</label>
+              <label htmlFor="tdee-activity-level" className="input-label">Activity Level</label>
               <select 
+                id="tdee-activity-level"
+                name="activityLevel"
                 value={formData.activityLevel}
                 onChange={(e) => setFormData({ ...formData, activityLevel: e.target.value })}
                 className="select-field"
@@ -187,8 +207,10 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
 
             {/* Goal Choice */}
             <div className="input-group">
-              <label className="input-label">Primary Goal</label>
+              <label htmlFor="tdee-primary-goal" className="input-label">Primary Goal</label>
               <select 
+                id="tdee-primary-goal"
+                name="primaryGoal"
                 value={formData.goal}
                 onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
                 className="select-field"
@@ -201,8 +223,10 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
 
             {/* Macro Distribution Preset */}
             <div className="input-group">
-              <label className="input-label">Macro Distribution Strategy</label>
+              <label htmlFor="tdee-macro-distribution" className="input-label">Macro Distribution Strategy</label>
               <select 
+                id="tdee-macro-distribution"
+                name="macroDistribution"
                 value={formData.macroPreset}
                 onChange={(e) => setFormData({ ...formData, macroPreset: e.target.value })}
                 className="select-field"
@@ -215,12 +239,12 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
 
             <button type="submit" className="btn btn-primary" style={{ marginTop: '8px', padding: '12px' }}>
               {savedSuccess ? (
-                <>
-                  <Check size={18} /> Plan Saved & Applied!
-                </>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }} aria-live="polite">
+                  <Check size={18} aria-hidden="true" /> Plan Saved & Applied!
+                </span>
               ) : (
                 <>
-                  <Sparkles size={18} /> Update & Apply Targets
+                  <Sparkles size={18} aria-hidden="true" /> Update & Apply Targets
                 </>
               )}
             </button>

@@ -276,6 +276,9 @@ export default function MealPlanner({
                   <div style={{ marginBottom: '14px' }}>
                     <button
                       type="button"
+                      aria-expanded={isExpanded}
+                      aria-controls={`recipe-ingredients-${recipe.id}`}
+                      aria-label={`Toggle ingredients list for ${recipe.title}`}
                       onClick={() => toggleExpand(recipe.id)}
                       style={{
                         width: '100%',
@@ -292,15 +295,17 @@ export default function MealPlanner({
                       }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
-                        <Scale size={14} color="var(--primary-light)" />
-                        Recipe Ingredients ({calc.ingredientDetails.length} items)
+                        <Scale size={14} color="var(--primary-light)" aria-hidden="true" />
+                        <span>Recipe Ingredients ({calc.ingredientDetails.length} items)</span>
                       </span>
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {isExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
                     </button>
 
                     {/* Expanded Ingredients & Instructions */}
                     {isExpanded && (
-                      <div style={{
+                      <div 
+                        id={`recipe-ingredients-${recipe.id}`}
+                        style={{
                         marginTop: '8px',
                         background: 'rgba(0, 0, 0, 0.3)',
                         borderRadius: 'var(--radius-sm)',
@@ -484,21 +489,42 @@ export default function MealPlanner({
                             setEditingRecipe(recipe)
                             setIsBuilderOpen(true)
                           }}
-                          className="btn btn-ghost btn-sm"
-                          title="Edit Recipe"
+                          className="btn-ghost"
+                          style={{
+                            minWidth: '44px',
+                            minHeight: '44px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '8px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)'
+                          }}
+                          aria-label={`Edit recipe ${recipe.title}`}
                         >
-                          <Edit3 size={15} />
+                          <Edit3 size={16} aria-hidden="true" />
                         </button>
 
                         {onDeleteRecipe && (
                           <button
                             type="button"
                             onClick={() => onDeleteRecipe(recipe.id)}
-                            className="btn btn-ghost btn-sm"
-                            style={{ color: 'var(--accent-red)' }}
-                            title="Delete Recipe"
+                            className="btn-ghost"
+                            style={{ 
+                              color: 'var(--accent-red)',
+                              minWidth: '44px',
+                              minHeight: '44px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '8px',
+                              border: 'none',
+                              cursor: 'pointer'
+                            }}
+                            aria-label={`Delete recipe ${recipe.title}`}
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={16} aria-hidden="true" />
                           </button>
                         )}
                       </div>

@@ -166,9 +166,24 @@ export default function RecipeBuilderModal({
   const pctC = Math.round((calFromC / totalMacroCal) * 100)
   const pctF = Math.round((calFromF / totalMacroCal) * 100)
 
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   return (
     <>
-      <div style={{
+      <div 
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="recipe-builder-title"
+        style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -183,6 +198,7 @@ export default function RecipeBuilderModal({
         padding: '16px'
       }}>
         <div 
+          onClick={(e) => e.stopPropagation()}
           className="glass-panel" 
           style={{
             width: '100%',
@@ -215,10 +231,10 @@ export default function RecipeBuilderModal({
                 justifyContent: 'center',
                 boxShadow: '0 4px 14px var(--primary-glow)'
               }}>
-                <ChefHat size={22} color="#fff" />
+                <ChefHat size={22} color="#fff" aria-hidden="true" />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: '800' }}>
+                <h3 id="recipe-builder-title" style={{ fontSize: '1.3rem', fontWeight: '800' }}>
                   {editingRecipe ? 'Edit Recipe & Ingredients' : 'Recipe Creator & Nutrition Architect'}
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -227,8 +243,13 @@ export default function RecipeBuilderModal({
               </div>
             </div>
 
-            <button onClick={onClose} className="btn btn-ghost btn-icon">
-              <X size={20} />
+            <button 
+              type="button"
+              onClick={onClose} 
+              className="btn btn-ghost btn-icon"
+              aria-label="Close recipe builder dialog"
+            >
+              <X size={20} aria-hidden="true" />
             </button>
           </div>
 
@@ -596,7 +617,7 @@ export default function RecipeBuilderModal({
                 <label className="input-label">Cooking Instructions & Steps</label>
                 <textarea
                   rows="3"
-                  placeholder="Seasoning, oven temperature, pan-searing times, boiling steps..."
+                  placeholder="Seasoning, oven temperature, pan-searing times, boiling steps…"
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                   className="input-field"
@@ -607,7 +628,7 @@ export default function RecipeBuilderModal({
                 <label className="input-label">Storage & Meal Prep Tips</label>
                 <textarea
                   rows="3"
-                  placeholder="e.g. Seal in airtight glass meal-prep containers. Keeps fresh for 4 days in fridge..."
+                  placeholder="e.g. Seal in airtight glass meal-prep containers. Keeps fresh for 4 days in fridge…"
                   value={tips}
                   onChange={(e) => setTips(e.target.value)}
                   className="input-field"

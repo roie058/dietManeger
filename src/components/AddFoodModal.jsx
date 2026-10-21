@@ -315,7 +315,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setOcrLoading(true)
     setOcrError('')
     setOcrProgress(10)
-    setOcrStatusText('Loading OCR engine...')
+    setOcrStatusText('Loading OCR engine…')
 
     try {
       const res = await Tesseract.recognize(
@@ -381,22 +381,42 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setActiveMode('manual') // switch to review populated data
   }
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        stopCameraScanner()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.82)',
-      backdropFilter: 'blur(10px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '16px'
-    }}>
+    <div 
+      onClick={() => { stopCameraScanner(); onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-food-modal-title"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.82)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        padding: '16px'
+      }}
+    >
       <div 
+        onClick={(e) => e.stopPropagation()}
         className="glass-panel" 
         style={{
           width: '100%',
@@ -428,10 +448,10 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Sparkles size={18} color="#fff" />
+              <Sparkles size={18} color="#fff" aria-hidden="true" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '800' }}>
+              <h3 id="add-food-modal-title" style={{ fontSize: '1.25rem', fontWeight: '800' }}>
                 Add Item to Food Database
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -441,10 +461,12 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
           </div>
 
           <button 
+            type="button"
             onClick={() => { stopCameraScanner(); onClose(); }} 
             className="btn btn-ghost btn-icon"
+            aria-label="Close add food dialog"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
@@ -566,7 +588,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input
                   type="text"
-                  placeholder="Enter or paste barcode (e.g. 5449000000996, 737628064502)..."
+                  id="barcode-input-field"
+                  name="barcodeQuery"
+                  autoComplete="off"
+                  aria-label="Enter or paste barcode number"
+                  placeholder="Enter or paste barcode (e.g. 5449000000996, 737628064502)…"
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleBarcodeLookup()}
@@ -578,6 +604,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   disabled={barcodeLoading || !barcodeInput.trim()}
                   onClick={() => handleBarcodeLookup()}
                   className="btn btn-primary"
+                  aria-label="Search product by barcode"
                   style={{ whiteSpace: 'nowrap' }}
                 >
                   {barcodeLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
@@ -662,8 +689,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <input
                     type="text"
-                    placeholder="e.g. Greek yogurt, tuna in water, peanut butter..."
                     id="name-search-input"
+                    name="productNameSearch"
+                    autoComplete="off"
+                    aria-label="Search product by name"
+                    placeholder="e.g. Greek yogurt, tuna in water, peanut butter…"
                     className="input-field"
                     style={{ flex: 1 }}
                     onKeyDown={(e) => {
@@ -677,6 +707,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                       handleNameSearch(val)
                     }}
                     className="btn btn-secondary"
+                    aria-label="Search Open Food Facts database by product name"
                   >
                     {nameSearchLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                     <span>Search</span>
