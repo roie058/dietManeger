@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { 
   X, 
   Plus, 
@@ -166,64 +167,44 @@ export default function RecipeBuilderModal({
   const pctC = Math.round((calFromC / totalMacroCal) * 100)
   const pctF = Math.round((calFromF / totalMacroCal) * 100)
 
-  // Close on Escape key
+  // Close on Escape key and lock body scroll
   React.useEffect(() => {
     if (!isOpen) return
+    document.body.style.overflow = 'hidden'
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = 'unset'
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [isOpen, onClose])
 
-  return (
+  if (!isOpen) return null
+
+  return createPortal(
     <>
       <div 
         onClick={onClose}
         role="dialog"
         aria-modal="true"
         aria-labelledby="recipe-builder-title"
-        style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.82)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9990,
-        padding: '16px'
-      }}>
+        className="modal-backdrop"
+      >
         <div 
           onClick={(e) => e.stopPropagation()}
-          className="glass-panel" 
+          className="modal-card" 
           style={{
-            width: '100%',
-            maxWidth: '920px',
-            maxHeight: '94vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            border: '1px solid var(--border-glow)',
-            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)'
+            maxWidth: '960px'
           }}
         >
           {/* Header */}
-          <div style={{
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.02)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="modal-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
-                width: '40px',
-                height: '40px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '12px',
                 background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
                 display: 'flex',
@@ -234,7 +215,7 @@ export default function RecipeBuilderModal({
                 <ChefHat size={22} color="#fff" aria-hidden="true" />
               </div>
               <div>
-                <h3 id="recipe-builder-title" style={{ fontSize: '1.3rem', fontWeight: '800' }}>
+                <h3 id="recipe-builder-title" style={{ fontSize: '1.28rem', fontWeight: '800', color: '#fff' }}>
                   {editingRecipe ? 'Edit Recipe & Ingredients' : 'Recipe Creator & Nutrition Architect'}
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -246,7 +227,7 @@ export default function RecipeBuilderModal({
             <button 
               type="button"
               onClick={onClose} 
-              className="btn btn-ghost btn-icon"
+              className="modal-close-btn"
               aria-label="Close recipe builder dialog"
             >
               <X size={20} aria-hidden="true" />
@@ -254,14 +235,8 @@ export default function RecipeBuilderModal({
           </div>
 
           {/* Form Content */}
-          <form id="recipe-builder-form" onSubmit={handleSave} style={{
-            padding: '24px',
-            overflowY: 'auto',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-          }}>
+          <div className="modal-body">
+            <form id="recipe-builder-form" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
             {/* General Info */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
@@ -319,8 +294,8 @@ export default function RecipeBuilderModal({
 
             {/* INGREDIENTS SECTION */}
             <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-color)',
+              background: '#0d1527',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
               borderRadius: 'var(--radius-md)',
               padding: '18px',
               display: 'flex',
@@ -495,8 +470,8 @@ export default function RecipeBuilderModal({
 
             {/* LIVE NUTRITION DASHBOARD FOR THIS RECIPE */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.05) 100%)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(56, 189, 248, 0.08) 100%), #0d1527',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
               borderRadius: 'var(--radius-md)',
               padding: '18px',
               display: 'flex',
@@ -636,26 +611,27 @@ export default function RecipeBuilderModal({
               </div>
             </div>
 
-          </form>
+            </form>
+          </div>
 
-          {/* Footer */}
-          <div style={{
-            padding: '16px 24px',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.02)'
-          }}>
-            <button type="button" onClick={onClose} className="btn btn-secondary">
+          {/* Fixed Modal Footer */}
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-secondary" style={{ minWidth: '100px' }}>
               Cancel
             </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-emerald" style={{ padding: '6px 12px', fontSize: '0.82rem' }}>
+                {ingredients.length} {ingredients.length === 1 ? 'ingredient' : 'ingredients'} • {nutrition.perServing.calories} kcal / serving ({servings} {servings === 1 ? 'portion' : 'portions'})
+              </span>
+            </div>
 
             <button
               type="submit"
               form="recipe-builder-form"
               disabled={ingredients.length === 0 || !title.trim()}
               className="btn btn-primary"
+              style={{ minWidth: '200px' }}
             >
               <Check size={16} />
               <span>Save Recipe to Library</span>
@@ -673,6 +649,7 @@ export default function RecipeBuilderModal({
           onSave={handleNewFoodCreated}
         />
       )}
-    </>
+    </>,
+    document.body
   )
 }

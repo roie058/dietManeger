@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { 
   X, 
   Barcode, 
@@ -381,9 +382,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setActiveMode('manual') // switch to review populated data
   }
 
-  // Close on Escape key
+  // Close on Escape key and lock body scroll
   useEffect(() => {
     if (!isOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         stopCameraScanner()
@@ -391,67 +394,46 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow || 'unset'
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [isOpen, onClose])
 
-  return (
+  if (!isOpen) return null
+
+  return createPortal(
     <div 
       onClick={() => { stopCameraScanner(); onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-food-modal-title"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.82)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: '16px'
-      }}
+      className="modal-backdrop nested-modal"
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="glass-panel" 
+        className="modal-card" 
         style={{
-          width: '100%',
-          maxWidth: '780px',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          border: '1px solid var(--border-glow)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)'
+          maxWidth: '820px'
         }}
       >
         {/* Modal Header */}
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'rgba(255, 255, 255, 0.02)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px var(--primary-glow)'
             }}>
-              <Sparkles size={18} color="#fff" aria-hidden="true" />
+              <Sparkles size={20} color="#fff" aria-hidden="true" />
             </div>
             <div>
-              <h3 id="add-food-modal-title" style={{ fontSize: '1.25rem', fontWeight: '800' }}>
+              <h3 id="add-food-modal-title" style={{ fontSize: '1.28rem', fontWeight: '800', color: '#fff' }}>
                 Add Item to Food Database
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -463,20 +445,21 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
           <button 
             type="button"
             onClick={() => { stopCameraScanner(); onClose(); }} 
-            className="btn btn-ghost btn-icon"
+            className="modal-close-btn"
             aria-label="Close add food dialog"
           >
             <X size={20} aria-hidden="true" />
           </button>
         </div>
 
-        {/* Tab Selection: Manual | Barcode | Photo OCR */}
+        {/* High-Contrast Tab Selection: Manual | Barcode | Photo OCR */}
         <div style={{
           display: 'flex',
-          background: 'rgba(0, 0, 0, 0.3)',
-          borderBottom: '1px solid var(--border-color)',
-          padding: '8px 24px',
-          gap: '10px'
+          background: '#0d1527',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: '10px 24px',
+          gap: '10px',
+          flexShrink: 0
         }}>
           <button
             type="button"
@@ -484,11 +467,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
             style={{
               flex: 1,
               padding: '10px 14px',
-              borderRadius: '10px',
-              border: activeMode === 'manual' ? '1px solid var(--primary)' : '1px solid transparent',
-              background: activeMode === 'manual' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-              color: activeMode === 'manual' ? 'var(--primary-light)' : 'var(--text-muted)',
-              fontWeight: activeMode === 'manual' ? '700' : '500',
+              borderRadius: 'var(--radius-md)',
+              border: activeMode === 'manual' ? '1px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeMode === 'manual' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              color: activeMode === 'manual' ? '#34d399' : '#94a3b8',
+              fontWeight: activeMode === 'manual' ? '700' : '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -508,11 +491,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
             style={{
               flex: 1,
               padding: '10px 14px',
-              borderRadius: '10px',
-              border: activeMode === 'barcode' ? '1px solid var(--accent-blue)' : '1px solid transparent',
-              background: activeMode === 'barcode' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-              color: activeMode === 'barcode' ? 'var(--accent-blue)' : 'var(--text-muted)',
-              fontWeight: activeMode === 'barcode' ? '700' : '500',
+              borderRadius: 'var(--radius-md)',
+              border: activeMode === 'barcode' ? '1px solid var(--accent-blue)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeMode === 'barcode' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              color: activeMode === 'barcode' ? '#38bdf8' : '#94a3b8',
+              fontWeight: activeMode === 'barcode' ? '700' : '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -532,11 +515,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
             style={{
               flex: 1,
               padding: '10px 14px',
-              borderRadius: '10px',
-              border: activeMode === 'ocr' ? '1px solid var(--accent-purple)' : '1px solid transparent',
-              background: activeMode === 'ocr' ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-              color: activeMode === 'ocr' ? '#c084fc' : 'var(--text-muted)',
-              fontWeight: activeMode === 'ocr' ? '700' : '500',
+              borderRadius: 'var(--radius-md)',
+              border: activeMode === 'ocr' ? '1px solid var(--accent-purple)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeMode === 'ocr' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              color: activeMode === 'ocr' ? '#c084fc' : '#94a3b8',
+              fontWeight: activeMode === 'ocr' ? '700' : '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -552,14 +535,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         </div>
 
         {/* Modal Body */}
-        <div style={{
-          padding: '24px',
-          overflowY: 'auto',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px'
-        }}>
+        <div className="modal-body">
           
           {/* ===================== MODE 2: BARCODE SCANNER & LOOKUP ===================== */}
           {activeMode === 'barcode' && (
@@ -1291,18 +1267,12 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         </div>
 
         {/* Modal Footer */}
-        <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'rgba(255, 255, 255, 0.02)'
-        }}>
+        <div className="modal-footer">
           <button
             type="button"
             onClick={() => { stopCameraScanner(); onClose(); }}
             className="btn btn-secondary"
+            style={{ minWidth: '100px' }}
           >
             Cancel
           </button>
@@ -1312,6 +1282,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               type="submit"
               form="food-entry-form"
               className="btn btn-primary"
+              style={{ minWidth: '220px' }}
             >
               <Check size={16} />
               <span>Save to Food Database</span>
@@ -1321,6 +1292,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               type="button"
               onClick={() => setActiveMode('manual')}
               className="btn btn-primary"
+              style={{ minWidth: '220px' }}
             >
               <span>Continue to Review & Edit</span>
               <ArrowRight size={16} />
@@ -1329,6 +1301,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

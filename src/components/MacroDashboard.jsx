@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { 
   Plus, 
   Trash2, 
@@ -68,8 +69,15 @@ export default function MacroDashboard({
     }
   })
 
-  // Close modals on Escape key
+  // Close modals on Escape key & lock body scroll
   React.useEffect(() => {
+    const isAnyModalOpen = Boolean(previewFood || showCustomModal)
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (previewFood) setPreviewFood(null)
@@ -77,7 +85,10 @@ export default function MacroDashboard({
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = 'unset'
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [previewFood, showCustomModal])
 
   // Macro Totals
@@ -1024,44 +1035,24 @@ export default function MacroDashboard({
       </div>
 
       {/* Food Micronutrient Details Preview Modal */}
-      {previewFood && (
+      {previewFood && createPortal(
         <div 
           onClick={() => setPreviewFood(null)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="preview-food-title"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
+          className="modal-backdrop"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="glass-panel" 
-            style={{
-              maxWidth: '520px',
-              width: '100%',
-              padding: '26px',
-              background: 'var(--bg-card-solid)',
-              border: '1px solid var(--border-color)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
+            className="modal-card" 
+            style={{ maxWidth: '540px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            {/* Modal Header */}
+            <div className="modal-header">
               <div>
                 <span className="badge badge-purple">{previewFood.category}</span>
-                <h3 id="preview-food-title" style={{ fontSize: '1.3rem', fontWeight: '800', marginTop: '6px' }}>
+                <h3 id="preview-food-title" style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '4px', color: '#fff' }}>
                   {previewFood.name}
                 </h3>
                 <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
@@ -1071,108 +1062,101 @@ export default function MacroDashboard({
               <button 
                 type="button"
                 onClick={() => setPreviewFood(null)}
-                className="btn-ghost"
+                className="modal-close-btn"
                 aria-label="Close food details dialog"
-                style={{ 
-                  minWidth: '44px',
-                  minHeight: '44px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer' 
-                }}
               >
                 <X size={20} aria-hidden="true" />
               </button>
             </div>
 
-            {/* Macros summary row */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '8px',
-              padding: '12px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: '18px',
-              textAlign: 'center'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>CALORIES</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-light)' }}>{previewFood.calories}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--accent-blue)' }}>PROTEIN</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{previewFood.protein}g</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--accent-yellow)' }}>CARBS</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{previewFood.carbs}g</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--accent-red)' }}>FAT</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{previewFood.fat}g</div>
-              </div>
-            </div>
-
-            {/* Full Micronutrients Table */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                <Sparkles size={15} color="var(--accent-purple)" />
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '700' }}>Vitamins & Minerals Breakdown</h4>
-              </div>
-
+            {/* Modal Body */}
+            <div className="modal-body">
+              {/* Macros summary row */}
               <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '10px',
+                padding: '14px',
+                background: '#0d1527',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 'var(--radius-md)',
+                textAlign: 'center'
               }}>
-                {MICRONUTRIENTS_DATA.map(micro => {
-                  const val = previewFood.micros?.[micro.id] || 0
-                  const pct = Math.round((val / micro.targetValue) * 100)
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '700' }}>CALORIES</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--primary-light)' }}>{previewFood.calories}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', fontWeight: '700' }}>PROTEIN</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{previewFood.protein}g</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--accent-yellow)', fontWeight: '700' }}>CARBS</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{previewFood.carbs}g</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--accent-red)', fontWeight: '700' }}>FAT</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{previewFood.fat}g</div>
+                </div>
+              </div>
 
-                  return (
-                    <div 
-                      key={micro.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: val > 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: val > 0 ? '#fff' : 'var(--text-dim)' }}>
-                          {micro.name}
-                        </span>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                          RDA: {micro.rda}
+              {/* Full Micronutrients Table */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <Sparkles size={16} color="var(--accent-purple)" />
+                  <h4 style={{ fontSize: '0.98rem', fontWeight: '700', color: '#fff' }}>Vitamins & Minerals Breakdown</h4>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  {MICRONUTRIENTS_DATA.map(micro => {
+                    const val = previewFood.micros?.[micro.id] || 0
+                    const pct = Math.round((val / micro.targetValue) * 100)
+
+                    return (
+                      <div 
+                        key={micro.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: val > 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                          border: val > 0 ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(255, 255, 255, 0.06)'
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontSize: '0.88rem', fontWeight: '600', color: val > 0 ? '#fff' : 'var(--text-muted)' }}>
+                            {micro.name}
+                          </span>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)' }}>
+                            RDA: {micro.rda}
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: '700', fontSize: '0.92rem', color: val > 0 ? 'var(--primary-light)' : 'var(--text-dim)' }}>
+                            {val} {micro.unit}
+                          </span>
+                          {val > 0 && (
+                            <span style={{ fontSize: '0.76rem', color: pct >= 25 ? 'var(--primary-light)' : 'var(--accent-blue)', marginLeft: '6px' }}>
+                              ({pct}% RDA)
+                            </span>
+                          )}
                         </div>
                       </div>
-
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: val > 0 ? 'var(--primary-light)' : 'var(--text-dim)' }}>
-                          {val} {micro.unit}
-                        </span>
-                        {val > 0 && (
-                          <span style={{ fontSize: '0.74rem', color: pct >= 25 ? 'var(--primary-light)' : 'var(--text-muted)', marginLeft: '6px' }}>
-                            ({pct}% RDA)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Modal Footer */}
+            <div className="modal-footer">
               <button 
                 type="button"
                 onClick={() => setPreviewFood(null)} 
@@ -1188,291 +1172,299 @@ export default function MacroDashboard({
                   setPreviewFood(null)
                 }} 
                 className="btn btn-primary" 
-                style={{ flex: 1 }}
+                style={{ flex: 1.2 }}
               >
                 <Plus size={16} /> Log This Food
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Enhanced Custom Meal Modal with Vitamins & Minerals */}
-      {showCustomModal && (
+      {showCustomModal && createPortal(
         <div 
           onClick={() => setShowCustomModal(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="custom-meal-title"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
+          className="modal-backdrop"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="glass-panel" 
-            style={{
-              maxWidth: '540px',
-              width: '100%',
-              padding: '26px',
-              background: 'var(--bg-card-solid)',
-              border: '1px solid var(--border-color)',
-              maxHeight: '92vh',
-              overflowY: 'auto'
-            }}
+            className="modal-card" 
+            style={{ maxWidth: '580px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 id="custom-meal-title" style={{ fontSize: '1.3rem', fontWeight: '700' }}>
-                Log Custom Food / Meal
-              </h3>
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px var(--primary-glow)'
+                }}>
+                  <Plus size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 id="custom-meal-title" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff' }}>
+                    Log Custom Food / Meal
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Record custom meal macros with optional micronutrients & presets
+                  </p>
+                </div>
+              </div>
+
               <button 
                 type="button"
                 onClick={() => setShowCustomModal(false)} 
-                className="btn-ghost" 
+                className="modal-close-btn" 
                 aria-label="Close custom meal dialog"
-                style={{ 
-                  minWidth: '44px',
-                  minHeight: '44px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
               >
-                <X size={18} aria-hidden="true" />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleCustomSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="input-group">
-                <label htmlFor="custom-meal-dish-name" className="input-label">Food / Dish Name</label>
-                <input 
-                  type="text" 
-                  id="custom-meal-dish-name"
-                  name="customDishName"
-                  autoComplete="off"
-                  required
-                  placeholder="e.g., Homemade Turkey Chili & Rice"
-                  value={customMeal.name}
-                  onChange={(e) => setCustomMeal({ ...customMeal, name: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {/* Modal Body */}
+            <div className="modal-body">
+              <form id="custom-meal-form" onSubmit={handleCustomSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="input-group">
-                  <label className="input-label">Meal Type</label>
-                  <select 
-                    value={customMeal.mealType}
-                    onChange={(e) => setCustomMeal({ ...customMeal, mealType: e.target.value })}
-                    className="select-field"
-                  >
-                    <option value="Breakfast">Breakfast</option>
-                    <option value="Lunch">Lunch</option>
-                    <option value="Dinner">Dinner</option>
-                    <option value="Snack">Snack</option>
-                  </select>
-                </div>
-
-                <div className="input-group">
-                  <label className="input-label">Serving Size</label>
+                  <label htmlFor="custom-meal-dish-name" className="input-label">Food / Dish Name *</label>
                   <input 
                     type="text" 
-                    placeholder="e.g., 200g or 1 bowl"
-                    value={customMeal.serving}
-                    onChange={(e) => setCustomMeal({ ...customMeal, serving: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-              </div>
-
-              {/* Macronutrient Inputs */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                <div className="input-group">
-                  <label className="input-label" style={{ color: 'var(--accent-blue)' }}>Protein (g)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    step="0.5"
-                    placeholder="0"
-                    value={customMeal.protein}
-                    onChange={(e) => setCustomMeal({ ...customMeal, protein: e.target.value })}
+                    id="custom-meal-dish-name"
+                    name="customDishName"
+                    autoComplete="off"
+                    required
+                    placeholder="e.g., Homemade Turkey Chili & Rice"
+                    value={customMeal.name}
+                    onChange={(e) => setCustomMeal({ ...customMeal, name: e.target.value })}
                     className="input-field"
                   />
                 </div>
 
-                <div className="input-group">
-                  <label className="input-label" style={{ color: 'var(--accent-yellow)' }}>Carbs (g)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    step="0.5"
-                    placeholder="0"
-                    value={customMeal.carbs}
-                    onChange={(e) => setCustomMeal({ ...customMeal, carbs: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-
-                <div className="input-group">
-                  <label className="input-label" style={{ color: 'var(--accent-red)' }}>Fat (g)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    step="0.5"
-                    placeholder="0"
-                    value={customMeal.fat}
-                    onChange={(e) => setCustomMeal({ ...customMeal, fat: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-              </div>
-
-              {/* Calculated preview */}
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: '0.85rem'
-              }}>
-                <span style={{ color: 'var(--text-muted)' }}>Estimated Calories:</span>
-                <span style={{ fontWeight: '700', color: 'var(--primary-light)', fontSize: '1rem' }}>
-                  {Math.round((parseFloat(customMeal.protein) || 0) * 4 + (parseFloat(customMeal.carbs) || 0) * 4 + (parseFloat(customMeal.fat) || 0) * 9)} kcal
-                </span>
-              </div>
-
-              {/* Collapsible Vitamins & Minerals Section */}
-              <div style={{
-                border: '1px solid rgba(168, 85, 247, 0.25)',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(168, 85, 247, 0.04)',
-                padding: '14px'
-              }}>
-                <div 
-                  onClick={() => setShowMicrosInForm(!showMicrosInForm)}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={16} color="var(--accent-purple)" />
-                    <span style={{ fontWeight: '700', fontSize: '0.92rem', color: '#fff' }}>
-                      Add Vitamins & Minerals (Optional)
-                    </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="input-group">
+                    <label className="input-label">Meal Type</label>
+                    <select 
+                      value={customMeal.mealType}
+                      onChange={(e) => setCustomMeal({ ...customMeal, mealType: e.target.value })}
+                      className="select-field"
+                    >
+                      <option value="Breakfast">Breakfast</option>
+                      <option value="Lunch">Lunch</option>
+                      <option value="Dinner">Dinner</option>
+                      <option value="Snack">Snack</option>
+                    </select>
                   </div>
-                  <button type="button" className="btn-ghost" style={{ padding: '2px' }}>
-                    {showMicrosInForm ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
+
+                  <div className="input-group">
+                    <label className="input-label">Serving Size</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g., 200g or 1 bowl"
+                      value={customMeal.serving}
+                      onChange={(e) => setCustomMeal({ ...customMeal, serving: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
                 </div>
 
-                {showMicrosInForm && (
-                  <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Quick booster presets */}
-                    <div>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
-                        1-Click Profile Presets:
+                {/* Macronutrient Inputs */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                  <div className="input-group">
+                    <label className="input-label" style={{ color: 'var(--accent-blue)' }}>Protein (g)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      step="0.5"
+                      placeholder="0"
+                      value={customMeal.protein}
+                      onChange={(e) => setCustomMeal({ ...customMeal, protein: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" style={{ color: 'var(--accent-yellow)' }}>Carbs (g)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      step="0.5"
+                      placeholder="0"
+                      value={customMeal.carbs}
+                      onChange={(e) => setCustomMeal({ ...customMeal, carbs: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" style={{ color: 'var(--accent-red)' }}>Fat (g)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      step="0.5"
+                      placeholder="0"
+                      value={customMeal.fat}
+                      onChange={(e) => setCustomMeal({ ...customMeal, fat: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+
+                {/* Calculated preview */}
+                <div style={{
+                  background: '#0d1527',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.88rem'
+                }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Estimated Energy Total:</span>
+                  <span style={{ fontWeight: '800', color: 'var(--primary-light)', fontSize: '1.05rem' }}>
+                    {Math.round((parseFloat(customMeal.protein) || 0) * 4 + (parseFloat(customMeal.carbs) || 0) * 4 + (parseFloat(customMeal.fat) || 0) * 9)} kcal
+                  </span>
+                </div>
+
+                {/* Collapsible Vitamins & Minerals Section */}
+                <div style={{
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  borderRadius: 'var(--radius-md)',
+                  background: '#131b2e',
+                  padding: '14px'
+                }}>
+                  <div 
+                    onClick={() => setShowMicrosInForm(!showMicrosInForm)}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sparkles size={16} color="var(--accent-purple)" />
+                      <span style={{ fontWeight: '700', fontSize: '0.92rem', color: '#fff' }}>
+                        Add Vitamins & Minerals (Optional)
                       </span>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                        <button 
-                          type="button" 
-                          onClick={() => applyPresetBooster('veggies')} 
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                        >
-                          🌿 Veggies Boost
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => applyPresetBooster('seafood')} 
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                        >
-                          🐟 Seafood & Omega
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => applyPresetBooster('multivitamin')} 
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                        >
-                          💊 Multivitamin Tablet
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => applyPresetBooster('clear')} 
-                          className="btn-ghost"
-                          style={{ fontSize: '0.72rem', padding: '3px 6px', color: 'var(--accent-red)' }}
-                        >
-                          Clear
-                        </button>
+                    </div>
+                    <button type="button" className="btn-ghost" style={{ padding: '4px' }}>
+                      {showMicrosInForm ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                  </div>
+
+                  {showMicrosInForm && (
+                    <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {/* Quick booster presets */}
+                      <div>
+                        <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>
+                          1-Click Profile Presets:
+                        </span>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                          <button 
+                            type="button" 
+                            onClick={() => applyPresetBooster('veggies')} 
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '4px 9px' }}
+                          >
+                            🌿 Veggies Boost
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => applyPresetBooster('seafood')} 
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '4px 9px' }}
+                          >
+                            🐟 Seafood & Omega
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => applyPresetBooster('multivitamin')} 
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '4px 9px' }}
+                          >
+                            💊 Multivitamin Tablet
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => applyPresetBooster('clear')} 
+                            className="btn-ghost"
+                            style={{ fontSize: '0.75rem', padding: '4px 8px', color: 'var(--accent-red)' }}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Inputs for each micronutrient */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '10px'
+                      }}>
+                        {MICRONUTRIENTS_DATA.map(micro => (
+                          <div key={micro.id} className="input-group">
+                            <label className="input-label" style={{ fontSize: '0.75rem', textTransform: 'none' }}>
+                              {micro.shortName} <span style={{ color: '#94a3b8' }}>({micro.unit})</span>
+                            </label>
+                            <input 
+                              type="number"
+                              step="any"
+                              min="0"
+                              placeholder={`0 ${micro.unit}`}
+                              value={customMeal.micros[micro.id] || ''}
+                              onChange={(e) => setCustomMeal({
+                                ...customMeal,
+                                micros: {
+                                  ...customMeal.micros,
+                                  [micro.id]: e.target.value
+                                }
+                              })}
+                              className="input-field"
+                              style={{ padding: '8px 12px', fontSize: '0.88rem' }}
+                            />
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  )}
+                </div>
+              </form>
+            </div>
 
-                    {/* Inputs for each micronutrient */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
-                      gap: '10px'
-                    }}>
-                      {MICRONUTRIENTS_DATA.map(micro => (
-                        <div key={micro.id} className="input-group">
-                          <label className="input-label" style={{ fontSize: '0.75rem', textTransform: 'none' }}>
-                            {micro.shortName} <span style={{ color: 'var(--text-dim)' }}>({micro.unit})</span>
-                          </label>
-                          <input 
-                            type="number"
-                            step="any"
-                            min="0"
-                            placeholder={`0 ${micro.unit}`}
-                            value={customMeal.micros[micro.id] || ''}
-                            onChange={(e) => setCustomMeal({
-                              ...customMeal,
-                              micros: {
-                                ...customMeal.micros,
-                                [micro.id]: e.target.value
-                              }
-                            })}
-                            className="input-field"
-                            style={{ padding: '6px 10px', fontSize: '0.85rem' }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button type="button" onClick={() => setShowCustomModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  Save & Log Food
-                </button>
-              </div>
-            </form>
+            {/* Modal Sticky Footer */}
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                onClick={() => setShowCustomModal(false)} 
+                className="btn btn-secondary"
+                style={{ minWidth: '110px' }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                form="custom-meal-form"
+                className="btn btn-primary" 
+                style={{ flex: 1 }}
+              >
+                <Check size={16} />
+                <span>Save & Log Food</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Add Food Modal (Barcode / Photo OCR / Manual) */}
