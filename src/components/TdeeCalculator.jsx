@@ -19,8 +19,10 @@ import {
   GOAL_MODIFIERS, 
   MACRO_PRESETS 
 } from '../utils/calculators'
+import BodyComposition from './BodyComposition'
 
 export default function TdeeCalculator({ profile, onUpdateProfile }) {
+  const [activeSection, setActiveSection] = useState('tdee') // 'tdee' | 'bodycomp'
   const [formData, setFormData] = useState({
     name: profile.name || 'Alex',
     gender: profile.gender || 'male',
@@ -68,8 +70,68 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Header */}
-      <div className="glass-panel" style={{ padding: '24px 28px' }}>
+      {/* Sub-Navigation: BMR & TDEE Goals vs Body Composition Tape Log */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        padding: '6px',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)',
+        alignSelf: 'flex-start',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          type="button"
+          onClick={() => setActiveSection('tdee')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '0.92rem',
+            fontWeight: activeSection === 'tdee' ? '700' : '500',
+            background: activeSection === 'tdee' ? 'var(--primary)' : 'transparent',
+            color: activeSection === 'tdee' ? '#0f172a' : 'var(--text-muted)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'var(--transition)'
+          }}
+        >
+          <Target size={17} />
+          <span>BMR, TDEE & Macro Targets</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('bodycomp')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '0.92rem',
+            fontWeight: activeSection === 'bodycomp' ? '700' : '500',
+            background: activeSection === 'bodycomp' ? 'var(--primary)' : 'transparent',
+            color: activeSection === 'bodycomp' ? '#0f172a' : 'var(--text-muted)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'var(--transition)'
+          }}
+        >
+          <Activity size={17} />
+          <span>Body Composition & Tape Measurements</span>
+        </button>
+      </div>
+
+      {activeSection === 'bodycomp' ? (
+        <BodyComposition profile={profile} onUpdateProfile={onUpdateProfile} />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="glass-panel" style={{ padding: '24px 28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <Target size={24} color="var(--primary-light)" />
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800' }}>
@@ -422,6 +484,8 @@ export default function TdeeCalculator({ profile, onUpdateProfile }) {
         </div>
 
       </div>
+        </>
+      )}
 
     </div>
   )
