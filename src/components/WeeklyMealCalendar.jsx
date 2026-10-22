@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { 
   Calendar, 
   ShoppingCart, 
@@ -722,31 +723,18 @@ export default function WeeklyMealCalendar({
       </div>
 
       {/* Assign Meal Modal */}
-      {assigningSlot && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%',
-            maxWidth: '640px',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.5)'
-          }}>
+      {assigningSlot && createPortal(
+        <div 
+          className="modal-backdrop" 
+          onClick={() => setAssigningSlot(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            className="modal-card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '640px' }}
+          >
             {/* Modal Header */}
             <div style={{
               padding: '20px 24px',
@@ -1006,35 +994,23 @@ export default function WeeklyMealCalendar({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Auto-Shopping List Consolidation Modal */}
-      {isShoppingPreviewOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%',
-            maxWidth: '680px',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.5)'
-          }}>
+      {isShoppingPreviewOpen && createPortal(
+        <div 
+          className="modal-backdrop" 
+          onClick={() => setIsShoppingPreviewOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            className="modal-card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '680px' }}
+          >
             {/* Header */}
             <div style={{
               padding: '20px 24px',
@@ -1154,7 +1130,8 @@ export default function WeeklyMealCalendar({
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

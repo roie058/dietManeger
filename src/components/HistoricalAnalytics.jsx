@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { 
   TrendingDown, 
   TrendingUp, 
@@ -495,33 +496,55 @@ export default function HistoricalAnalytics({
       </div>
 
       {/* Log Weight Modal */}
-      {showWeightModal && (
-        <div className="modal-backdrop" onClick={() => setShowWeightModal(false)}>
-          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', padding: '24px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '8px' }}>
-              Log Weight for {formatDisplayDate(selectedDate || todayStr)}
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Weigh yourself in the morning under consistent conditions for greatest trend accuracy.
-            </p>
-            <form onSubmit={handleSaveWeight} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label className="input-label" htmlFor="historical-weight-input">Weight (kg)</label>
-                <input
-                  id="historical-weight-input"
-                  name="historicalWeight"
-                  autoComplete="off"
-                  type="number"
-                  step="0.1"
-                  required
-                  autoFocus
-                  placeholder="e.g. 75.8"
-                  value={weightInput}
-                  onChange={e => setWeightInput(e.target.value)}
-                  className="input-field"
-                />
+      {showWeightModal && createPortal(
+        <div 
+          className="modal-backdrop" 
+          onClick={() => setShowWeightModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            className="modal-card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '440px' }}
+          >
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#fff', margin: 0 }}>
+                Log Weight for {formatDisplayDate(selectedDate || todayStr)}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowWeightModal(false)} 
+                className="btn-ghost" 
+                style={{ padding: '4px' }}
+                aria-label="Close weight modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveWeight} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Weigh yourself in the morning under consistent conditions for greatest trend accuracy.
+                </p>
+                <div>
+                  <label className="input-label" htmlFor="historical-weight-input">Weight (kg)</label>
+                  <input
+                    id="historical-weight-input"
+                    name="historicalWeight"
+                    autoComplete="off"
+                    type="number"
+                    step="0.1"
+                    required
+                    autoFocus
+                    placeholder="e.g. 75.8"
+                    value={weightInput}
+                    onChange={e => setWeightInput(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.1)', background: '#131f37' }}>
                 <button type="button" onClick={() => setShowWeightModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -531,7 +554,8 @@ export default function HistoricalAnalytics({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { 
   Flame, 
   Dumbbell, 
@@ -330,158 +331,204 @@ export default function ExerciseTracker({
       )}
 
       {/* Log Workout Modal */}
-      {showModal && (
-        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Flame size={20} color="var(--accent-orange)" />
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Record Workout Activity</h3>
+      {showModal && createPortal(
+        <div 
+          className="modal-backdrop" 
+          onClick={() => setShowModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="record-workout-title"
+        >
+          <div 
+            className="modal-card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '520px' }}
+          >
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.4) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(249, 115, 22, 0.3)'
+                }}>
+                  <Flame size={20} color="var(--accent-orange)" />
+                </div>
+                <div>
+                  <h3 id="record-workout-title" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff' }}>
+                    Record Workout Activity
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Calculate calories burned and track active energy
+                  </span>
+                </div>
               </div>
-              <button onClick={() => setShowModal(false)} className="btn-ghost" style={{ padding: '4px' }}>
+              <button 
+                type="button"
+                onClick={() => setShowModal(false)} 
+                className="btn-ghost" 
+                style={{ padding: '6px' }}
+                aria-label="Close workout modal"
+              >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitWorkout} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Activity Preset selector */}
-              <div>
-                <label className="input-label" htmlFor="workout-activity-select">Select Workout Type</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '6px' }}>
-                  {WORKOUT_PRESETS.map(preset => {
-                    const Icon = preset.icon
-                    const isSelected = selectedPreset.id === preset.id
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => setSelectedPreset(preset)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '10px 12px',
-                          borderRadius: 'var(--radius-md)',
-                          border: isSelected ? '1px solid var(--accent-orange)' : '1px solid var(--border-color)',
-                          background: isSelected ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                          color: isSelected ? '#fff' : 'var(--text-muted)',
-                          fontSize: '0.8rem',
-                          fontWeight: isSelected ? '700' : '500',
-                          cursor: 'pointer',
-                          textAlign: 'left'
-                        }}
-                      >
-                        <Icon size={16} color={isSelected ? 'var(--accent-orange)' : 'var(--text-dim)'} />
-                        <span>{preset.name}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Custom name if custom selected */}
-              {selectedPreset.id === 'custom' && (
+            {/* Form */}
+            <form onSubmit={handleSubmitWorkout} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {/* Activity Preset selector */}
                 <div>
-                  <label className="input-label" htmlFor="workout-custom-name">Workout Name</label>
-                  <input
-                    id="workout-custom-name"
-                    name="customWorkoutName"
-                    autoComplete="off"
-                    type="text"
-                    required
-                    placeholder="e.g. Martial arts / Kettlebell flow"
-                    value={customName}
-                    onChange={e => setCustomName(e.target.value)}
-                    className="input-field"
-                  />
-                </div>
-              )}
-
-              {/* Duration Slider / Input */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <label className="input-label" htmlFor="workout-duration-range">Duration</label>
-                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--primary-light)' }}>
-                    {durationMinutes} minutes
-                  </span>
-                </div>
-                <input
-                  id="workout-duration-range"
-                  name="workoutDurationRange"
-                  type="range"
-                  min="5"
-                  max="180"
-                  step="5"
-                  value={durationMinutes}
-                  onChange={e => setDurationMinutes(parseInt(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--accent-orange)' }}
-                />
-              </div>
-
-              {/* Intensity Picker */}
-              <div>
-                <label className="input-label">Intensity Level</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '6px' }}>
-                  {[
-                    { id: 'light', label: 'Light', desc: '0.8x burn' },
-                    { id: 'moderate', label: 'Moderate', desc: '1.0x burn' },
-                    { id: 'vigorous', label: 'Vigorous', desc: '1.25x burn' }
-                  ].map(lvl => (
-                    <button
-                      key={lvl.id}
-                      type="button"
-                      onClick={() => setIntensity(lvl.id)}
-                      style={{
-                        padding: '8px',
-                        borderRadius: 'var(--radius-md)',
-                        border: intensity === lvl.id ? '1px solid var(--accent-orange)' : '1px solid var(--border-color)',
-                        background: intensity === lvl.id ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                        color: intensity === lvl.id ? '#fff' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        textAlign: 'center'
-                      }}
-                    >
-                      <div style={{ fontSize: '0.82rem', fontWeight: '700' }}>{lvl.label}</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>{lvl.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Estimated Burn preview / custom override */}
-              <div style={{
-                background: 'rgba(249, 115, 22, 0.08)',
-                border: '1px solid rgba(249, 115, 22, 0.25)',
-                borderRadius: 'var(--radius-md)',
-                padding: '12px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Estimated Calorie Burn:</span>
-                  <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--accent-orange)' }}>
-                    ~{calculatedCalories} kcal
+                  <label className="input-label" htmlFor="workout-activity-select">Select Workout Type</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '6px' }}>
+                    {WORKOUT_PRESETS.map(preset => {
+                      const Icon = preset.icon
+                      const isSelected = selectedPreset.id === preset.id
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setSelectedPreset(preset)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-md)',
+                            border: isSelected ? '1px solid var(--accent-orange)' : '1px solid var(--border-color)',
+                            background: isSelected ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                            color: isSelected ? '#fff' : 'var(--text-muted)',
+                            fontSize: '0.8rem',
+                            fontWeight: isSelected ? '700' : '500',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <Icon size={16} color={isSelected ? 'var(--accent-orange)' : 'var(--text-dim)'} />
+                          <span>{preset.name}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-                <div style={{ width: '110px' }}>
-                  <label htmlFor="workout-override-cals" style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>Override (kcal):</label>
+
+                {/* Custom name if custom selected */}
+                {selectedPreset.id === 'custom' && (
+                  <div>
+                    <label className="input-label" htmlFor="workout-custom-name">Workout Name</label>
+                    <input
+                      id="workout-custom-name"
+                      name="customWorkoutName"
+                      autoComplete="off"
+                      type="text"
+                      required
+                      placeholder="e.g. Martial arts / Kettlebell flow"
+                      value={customName}
+                      onChange={e => setCustomName(e.target.value)}
+                      className="input-field"
+                    />
+                  </div>
+                )}
+
+                {/* Duration Slider / Input */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label className="input-label" htmlFor="workout-duration-range">Duration</label>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--primary-light)' }}>
+                      {durationMinutes} minutes
+                    </span>
+                  </div>
                   <input
-                    id="workout-override-cals"
-                    name="overrideCalories"
-                    autoComplete="off"
-                    type="number"
-                    placeholder={calculatedCalories.toString()}
-                    value={customCalories}
-                    onChange={e => setCustomCalories(e.target.value)}
-                    className="input-field"
-                    style={{ padding: '4px 8px', fontSize: '0.82rem' }}
+                    id="workout-duration-range"
+                    name="workoutDurationRange"
+                    type="range"
+                    min="5"
+                    max="180"
+                    step="5"
+                    value={durationMinutes}
+                    onChange={e => setDurationMinutes(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--accent-orange)' }}
                   />
+                </div>
+
+                {/* Intensity Picker */}
+                <div>
+                  <label className="input-label">Intensity Level</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '6px' }}>
+                    {[
+                      { id: 'light', label: 'Light', desc: '0.8x burn' },
+                      { id: 'moderate', label: 'Moderate', desc: '1.0x burn' },
+                      { id: 'vigorous', label: 'Vigorous', desc: '1.25x burn' }
+                    ].map(lvl => (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setIntensity(lvl.id)}
+                        style={{
+                          padding: '8px',
+                          borderRadius: 'var(--radius-md)',
+                          border: intensity === lvl.id ? '1px solid var(--accent-orange)' : '1px solid var(--border-color)',
+                          background: intensity === lvl.id ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                          color: intensity === lvl.id ? '#fff' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.82rem', fontWeight: '700' }}>{lvl.label}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>{lvl.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Estimated Burn preview / custom override */}
+                <div style={{
+                  background: 'rgba(249, 115, 22, 0.08)',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Estimated Calorie Burn:</span>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--accent-orange)' }}>
+                      ~{calculatedCalories} kcal
+                    </div>
+                  </div>
+                  <div style={{ width: '120px' }}>
+                    <label htmlFor="workout-override-cals" style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>Override (kcal):</label>
+                    <input
+                      id="workout-override-cals"
+                      name="overrideCalories"
+                      autoComplete="off"
+                      type="number"
+                      placeholder={calculatedCalories.toString()}
+                      value={customCalories}
+                      onChange={e => setCustomCalories(e.target.value)}
+                      className="input-field"
+                      style={{ padding: '6px 8px', fontSize: '0.82rem' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Submit Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+              {/* Modal Footer */}
+              <div className="modal-footer" style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                padding: '16px 24px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                background: '#131f37',
+                flexShrink: 0
+              }}>
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -491,7 +538,8 @@ export default function ExerciseTracker({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
