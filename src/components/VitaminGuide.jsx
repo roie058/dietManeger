@@ -28,6 +28,24 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
     }, {})
   }, [mealLogs])
 
+  // Top food contributor per micronutrient
+  const topContributors = React.useMemo(() => {
+    const map = {}
+    MICRONUTRIENTS_DATA.forEach(micro => {
+      let top = null
+      let maxVal = 0
+      mealLogs.forEach(meal => {
+        const val = parseFloat(meal.micros?.[micro.id]) || 0
+        if (val > maxVal) {
+          maxVal = val
+          top = { name: meal.name, amount: val }
+        }
+      })
+      map[micro.id] = top
+    })
+    return map
+  }, [mealLogs])
+
   const filteredData = MICRONUTRIENTS_DATA.filter((item) => {
     const matchesCat = selectedFilter === 'All' || item.category === selectedFilter
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -41,8 +59,13 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
     return dailyVitaminsCovered.includes(item.id) || (foodIntakes[item.id] || 0) >= (item.targetValue || 1)
   }
 
+  const foodMetCount = MICRONUTRIENTS_DATA.filter(item => (foodIntakes[item.id] || 0) >= (item.targetValue || 1)).length
+  const supplementedCount = MICRONUTRIENTS_DATA.filter(item => dailyVitaminsCovered.includes(item.id)).length
   const coveredCount = MICRONUTRIENTS_DATA.filter(item => isItemCovered(item)).length
   const coveredPercent = Math.round((coveredCount / MICRONUTRIENTS_DATA.length) * 100)
+  const uncheckFoodMetMicros = MICRONUTRIENTS_DATA.filter(item => 
+    (foodIntakes[item.id] || 0) >= (item.targetValue || 1) && !dailyVitaminsCovered.includes(item.id)
+  )
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -57,12 +80,13 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <span className="badge badge-emerald">Micronutrient Science</span>
               <span className="badge badge-blue">RDA & Longevity Targets</span>
+              <span className="badge badge-purple">Auto Food Sync Active</span>
             </div>
             <h2 style={{ fontSize: '1.8rem', fontWeight: '800' }}>
               Essential Vitamins & Minerals Guide
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '650px', marginTop: '4px' }}>
-              Optimize your cellular metabolism, nervous system recovery, and hormone regulation. Check off micronutrients fulfilled through whole food nutrition or daily supplements.
+              Optimize your cellular metabolism, nervous system recovery, and hormone regulation. Your logged foods automatically sync towards your clinical Recommended Daily Allowances (RDA).
             </p>
           </div>
 
@@ -72,9 +96,9 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '16px 20px',
-            minWidth: '220px'
+            minWidth: '260px'
           }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
               TODAY'S COVERAGE
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
@@ -82,12 +106,23 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
                 {coveredCount} / {MICRONUTRIENTS_DATA.length}
               </span>
               <span style={{ fontSize: '0.85rem', color: 'var(--primary-light)', fontWeight: '600' }}>
-                {coveredPercent}%
+                {coveredPercent}% ({foodMetCount} food, {supplementedCount} supps)
               </span>
             </div>
             <div className="progress-container" style={{ marginTop: '8px', height: '6px' }}>
               <div className="progress-bar" style={{ width: `${coveredPercent}%`, background: 'var(--accent-purple)' }} />
             </div>
+            {uncheckFoodMetMicros.length > 0 && (
+              <button
+                type="button"
+                onClick={() => uncheckFoodMetMicros.forEach(item => onToggleVitamin(item.id))}
+                className="btn btn-sm btn-secondary"
+                style={{ fontSize: '0.72rem', marginTop: '10px', width: '100%', padding: '4px 8px' }}
+                title="Mark all 100% food-met nutrients in your supplement checklist"
+              >
+                ⚡ Auto-check {uncheckFoodMetMicros.length} food-met items
+              </button>
+            )}
           </div>
         </div>
 
@@ -176,12 +211,28 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
                 {/* Header row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
                       <span className="badge badge-purple">{item.category}</span>
                       <span className="badge badge-emerald">{item.tag}</span>
-                      {isFoodMet && (
-                        <span className="badge badge-blue" style={{ fontSize: '0.68rem' }}>
-                          🍽️ Met from Food
+                      {isFoodMet && dailyVitaminsCovered.includes(item.id) ? (
+                        <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
+                          ✨ Food + Supp
+                        </span>
+                      ) : isFoodMet ? (
+                        <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
+                          🍽️ 100% Met from Food
+                        </span>
+                      ) : dailyVitaminsCovered.includes(item.id) ? (
+                        <span className="badge badge-purple" style={{ fontSize: '0.68rem' }}>
+                          💊 Supplemented
+                        </span>
+                      ) : intakePct >= 60 ? (
+                        <span className="badge badge-amber" style={{ fontSize: '0.68rem' }}>
+                          {intakePct}% from Food
+                        </span>
+                      ) : (
+                        <span className="badge badge-rose" style={{ fontSize: '0.68rem' }}>
+                          {intakePct}% from Food
                         </span>
                       )}
                     </div>
@@ -258,6 +309,17 @@ export default function VitaminGuide({ dailyVitaminsCovered, onToggleVitamin, me
                       }} 
                     />
                   </div>
+                  {topContributors[item.id] ? (
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>🏆 Top food source:</span>
+                      <strong style={{ color: '#cbd5e1' }}>{topContributors[item.id].name}</strong>
+                      <span style={{ color: 'var(--primary-light)' }}>(+{topContributors[item.id].amount} {item.unit})</span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                      No logged meals contributing {item.shortName} yet today.
+                    </div>
+                  )}
                 </div>
 
                 {/* Biological Function */}

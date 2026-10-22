@@ -251,6 +251,7 @@ export default function App() {
             onToggleVitamin={handleToggleVitamin}
             foodLibrary={foodLibrary}
             onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
+            onNavigateTab={setActiveTab}
           />
         )}
 

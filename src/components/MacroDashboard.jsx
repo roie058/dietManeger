@@ -37,7 +37,8 @@ export default function MacroDashboard({
   dailyVitaminsCovered = [],
   onToggleVitamin,
   foodLibrary = COMMON_FOOD_LIBRARY,
-  onAddNewFoodToLibrary
+  onAddNewFoodToLibrary,
+  onNavigateTab
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFoodCategory, setSelectedFoodCategory] = useState('All')
@@ -128,6 +129,8 @@ export default function MacroDashboard({
     const target = micro.targetValue || 100
     const percent = Math.round((current / target) * 100)
     const isMet = current >= target
+    const isSupplemented = dailyVitaminsCovered.includes(micro.id)
+    const isCovered = isMet || isSupplemented
 
     // Find the meal that contributed the most to this micronutrient
     let topContributor = null
@@ -146,19 +149,24 @@ export default function MacroDashboard({
       target,
       percent,
       isMet,
+      isSupplemented,
+      isCovered,
       topContributor
     }
   })
 
   // Summary counts
   const totalMicrosCount = microStats.length
-  const metMicrosCount = microStats.filter(m => m.isMet).length
+  const foodMetCount = microStats.filter(m => m.isMet).length
+  const supplementedCount = microStats.filter(m => m.isSupplemented).length
+  const totalCoveredCount = microStats.filter(m => m.isCovered).length
+  const uncheckFoodMetMicros = microStats.filter(m => m.isMet && !m.isSupplemented)
   const avgMicroPercent = Math.min(100, Math.round(
     microStats.reduce((sum, m) => sum + Math.min(100, m.percent), 0) / totalMicrosCount
   ))
 
   // Deficient nutrients for recommendation (< 50% target)
-  const lowMicros = microStats.filter(m => m.percent < 50)
+  const lowMicros = microStats.filter(m => !m.isCovered && m.percent < 50)
 
   // Smart food recommendation based on lowest nutrients
   const recommendedFoods = React.useMemo(() => {
@@ -509,35 +517,58 @@ export default function MacroDashboard({
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
-            padding: '14px 20px',
-            minWidth: '240px'
+            padding: '16px 20px',
+            minWidth: '280px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                RDA FULFILLMENT
+                DAILY MICRONUTRIENT COVERAGE
               </span>
-              <span className={`badge ${metMicrosCount >= 7 ? 'badge-emerald' : 'badge-amber'}`}>
-                {metMicrosCount >= 7 ? 'Optimal' : 'In Progress'}
+              <span className={`badge ${totalCoveredCount >= 8 ? 'badge-emerald' : totalCoveredCount >= 5 ? 'badge-blue' : 'badge-amber'}`}>
+                {totalCoveredCount >= 8 ? 'Optimal Coverage' : `${totalCoveredCount} of ${totalMicrosCount} Met`}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
               <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#fff' }}>
-                {metMicrosCount} / {totalMicrosCount}
+                {totalCoveredCount} / {totalMicrosCount}
               </span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--primary-light)', fontWeight: '600' }}>
-                targets met ({avgMicroPercent}%)
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: '500' }}>
+                ({foodMetCount} food, {supplementedCount} supps)
               </span>
             </div>
             <div className="progress-container" style={{ marginTop: '8px', height: '6px' }}>
               <div 
                 className="progress-bar" 
                 style={{ 
-                  width: `${avgMicroPercent}%`, 
-                  background: metMicrosCount >= 7 
+                  width: `${Math.round((totalCoveredCount / totalMicrosCount) * 100)}%`, 
+                  background: totalCoveredCount >= 8 
                     ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)' 
                     : 'linear-gradient(90deg, #a855f7 0%, #38bdf8 100%)' 
                 }} 
               />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {uncheckFoodMetMicros.length > 0 && onToggleVitamin && (
+                <button
+                  type="button"
+                  onClick={() => uncheckFoodMetMicros.forEach(m => onToggleVitamin(m.id))}
+                  className="btn btn-sm btn-secondary"
+                  style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                  title="Mark all 100% food-met nutrients in your supplement checklist"
+                >
+                  ⚡ Auto-check {uncheckFoodMetMicros.length} food-met
+                </button>
+              )}
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('vitamins')}
+                  className="btn-ghost"
+                  style={{ fontSize: '0.74rem', color: 'var(--primary-light)', padding: '2px 6px' }}
+                >
+                  Clinical Guide & Sources →
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -566,24 +597,26 @@ export default function MacroDashboard({
         {/* Micronutrients Progress Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
           gap: '14px'
         }}>
           {filteredMicros.map(micro => {
             const isMet = micro.isMet
+            const isCovered = micro.isCovered
             const displayPercent = Math.min(200, micro.percent)
 
             return (
               <div
                 key={micro.id}
                 style={{
-                  background: isMet ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)',
-                  border: isMet ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--border-color)',
+                  background: isCovered ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                  border: isCovered ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)',
                   padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
+                  gap: '8px',
                   transition: 'var(--transition)'
                 }}
               >
@@ -606,17 +639,25 @@ export default function MacroDashboard({
                       </span>
                     </div>
 
-                    {isMet ? (
-                      <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
-                        <Check size={11} /> {micro.percent}% Met
+                    {isMet && micro.isSupplemented ? (
+                      <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
+                        <Check size={11} /> Food + Supp
+                      </span>
+                    ) : isMet ? (
+                      <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
+                        <Check size={11} /> {micro.percent}% Food
+                      </span>
+                    ) : micro.isSupplemented ? (
+                      <span className="badge badge-purple" style={{ fontSize: '0.68rem' }}>
+                        <Pill size={11} /> Supp ({micro.percent}%)
                       </span>
                     ) : micro.percent >= 60 ? (
-                      <span className="badge badge-amber" style={{ fontSize: '0.7rem' }}>
-                        {micro.percent}%
+                      <span className="badge badge-amber" style={{ fontSize: '0.68rem' }}>
+                        {micro.percent}% Food
                       </span>
                     ) : (
-                      <span className="badge badge-rose" style={{ fontSize: '0.7rem' }}>
-                        {micro.percent}%
+                      <span className="badge badge-rose" style={{ fontSize: '0.68rem' }}>
+                        {micro.percent}% Food
                       </span>
                     )}
                   </div>
@@ -634,12 +675,38 @@ export default function MacroDashboard({
                   {/* Progress bar */}
                   <div className="progress-container" style={{ height: '6px', marginBottom: '8px' }}>
                     <div 
-                      className="progress-bar"
+                      className="progress-bar" 
                       style={{ 
                         width: `${Math.min(100, displayPercent)}%`, 
                         background: isMet ? 'var(--primary-light)' : (micro.color || 'var(--accent-purple)')
                       }} 
                     />
+                  </div>
+
+                  {/* Supplement Toggle */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => onToggleVitamin && onToggleVitamin(micro.id)}
+                      style={{
+                        fontSize: '0.72rem',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: micro.isSupplemented ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: micro.isSupplemented ? 'rgba(168, 85, 247, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                        color: micro.isSupplemented ? '#d8b4fe' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Pill size={11} />
+                      {micro.isSupplemented ? 'Supplement Taken ✓' : '+ Supplement'}
+                    </button>
+                    <span style={{ fontSize: '0.72rem', color: isMet ? 'var(--primary-light)' : 'var(--text-dim)' }}>
+                      {isMet ? 'Target Satisfied' : `${Math.max(0, Math.round((micro.target - micro.current) * 10) / 10)} ${micro.unit} to goal`}
+                    </span>
                   </div>
                 </div>
 
