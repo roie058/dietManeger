@@ -29,6 +29,7 @@ import { COMMON_FOOD_LIBRARY } from '../data/initialData'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
 import { formatDisplayDate } from '../utils/dateUtils'
 import AddFoodModal from './AddFoodModal'
+import MacroGapFiller from './MacroGapFiller'
 
 export default function MacroDashboard({ 
   profile, 
@@ -504,6 +505,20 @@ export default function MacroDashboard({
           </div>
         </div>
       </div>
+
+      {/* Smart Macro Gap Filler (Intelligent Suggestions) */}
+      <MacroGapFiller 
+        targetCalories={targetCal}
+        targetProtein={targetProtein}
+        targetCarbs={targetCarbs}
+        targetFat={targetFat}
+        currentCalories={totals.calories}
+        currentProtein={totals.protein}
+        currentCarbs={totals.carbs}
+        currentFat={totals.fat}
+        foodLibrary={foodLibrary}
+        onLogMeal={onAddMeal}
+      />
 
       {/* NEW: Daily Micronutrients & Minerals Tracker Section */}
       <div className="glass-panel" style={{
