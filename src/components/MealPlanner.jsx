@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { calculateRecipeNutrition } from '../utils/recipeCalculator'
 import RecipeBuilderModal from './RecipeBuilderModal'
+import WeeklyMealCalendar from './WeeklyMealCalendar'
 
 export default function MealPlanner({ 
   recipes = [], 
@@ -26,8 +27,11 @@ export default function MealPlanner({
   foodLibrary = [], 
   onAddNewFoodToLibrary, 
   onAddIngredientsToShoppingList,
-  onLogMeal 
+  onLogMeal,
+  onLogBatchMeals,
+  targetCalories = 2350
 }) {
+  const [plannerTab, setPlannerTab] = useState('calendar') // 'calendar' | 'recipes'
   const [activeCategory, setActiveCategory] = useState('All')
   const [expandedRecipeIds, setExpandedRecipeIds] = useState({ r1: true }) // expand first by default
   const [isBuilderOpen, setIsBuilderOpen] = useState(false)
@@ -103,15 +107,82 @@ export default function MealPlanner({
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Top Banner */}
-      <div className="glass-panel" style={{
-        padding: '24px 28px',
+      {/* Sub-Navigation: Weekly 7-Day Calendar vs Recipe Architect */}
+      <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '16px'
+        gap: '8px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        padding: '6px',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)',
+        alignSelf: 'flex-start',
+        flexWrap: 'wrap'
       }}>
+        <button
+          type="button"
+          onClick={() => setPlannerTab('calendar')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '0.92rem',
+            fontWeight: plannerTab === 'calendar' ? '700' : '500',
+            background: plannerTab === 'calendar' ? 'var(--primary)' : 'transparent',
+            color: plannerTab === 'calendar' ? '#0f172a' : 'var(--text-muted)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'var(--transition)'
+          }}
+        >
+          <Calendar size={17} />
+          <span>7-Day Meal Calendar & Auto-Shopping</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setPlannerTab('recipes')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '0.92rem',
+            fontWeight: plannerTab === 'recipes' ? '700' : '500',
+            background: plannerTab === 'recipes' ? 'var(--primary)' : 'transparent',
+            color: plannerTab === 'recipes' ? '#0f172a' : 'var(--text-muted)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'var(--transition)'
+          }}
+        >
+          <ChefHat size={17} />
+          <span>Recipe & Batch Prep Library ({recipes.length})</span>
+        </button>
+      </div>
+
+      {plannerTab === 'calendar' ? (
+        <WeeklyMealCalendar
+          recipes={recipes}
+          foodLibrary={foodLibrary}
+          onAddIngredientsToShoppingList={onAddIngredientsToShoppingList}
+          onLogMeal={onLogMeal}
+          onLogBatchMeals={onLogBatchMeals}
+          targetCalories={targetCalories}
+        />
+      ) : (
+        <>
+          {/* Top Banner */}
+          <div className="glass-panel" style={{
+            padding: '24px 28px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
             <span className="badge badge-emerald">Recipe & Meal Prep Architect</span>
@@ -536,6 +607,8 @@ export default function MealPlanner({
             )
           })}
         </div>
+      )}
+        </>
       )}
 
       {/* Recipe Builder Modal */}

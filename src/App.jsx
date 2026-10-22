@@ -288,14 +288,34 @@ export default function App() {
   }
 
   const handleAddBatchToShopping = (items) => {
-    const newItems = items.map((text, idx) => ({
-      id: 's_batch_' + Date.now() + '_' + idx,
-      text,
-      category: 'Produce & Staples',
-      completed: false
-    }))
-    setShoppingItems([...newItems, ...shoppingItems])
+    const newItems = items.map((item, idx) => {
+      if (typeof item === 'string') {
+        return {
+          id: 's_batch_' + Date.now() + '_' + idx,
+          text: item,
+          category: 'Produce & Staples',
+          completed: false
+        }
+      }
+      return {
+        id: 's_batch_' + Date.now() + '_' + idx,
+        text: item.text || item.name,
+        category: item.category || 'Produce & Staples',
+        completed: false
+      }
+    })
+    setShoppingItems(prev => [...newItems, ...prev])
     setActiveTab('shopping')
+  }
+
+  const handleAddBatchMeals = (meals) => {
+    setDailyHistory(prev => {
+      const day = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
+      return {
+        ...prev,
+        [selectedDate]: { ...day, mealLogs: [...meals, ...(day.mealLogs || [])] }
+      }
+    })
   }
 
   // Food Library Handlers
@@ -418,6 +438,8 @@ export default function App() {
             onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
             onAddIngredientsToShoppingList={handleAddBatchToShopping}
             onLogMeal={handleAddMeal}
+            onLogBatchMeals={handleAddBatchMeals}
+            targetCalories={profile.targetCalories || 2350}
           />
         )}
 
