@@ -250,7 +250,7 @@ export default function FoodDatabaseView({
                   </div>
 
                   {/* Micros highlights */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
                     {food.keyMicros?.map((k, idx) => (
                       <span key={idx} className="micro-pill highlight">{k}</span>
                     ))}
@@ -267,6 +267,37 @@ export default function FoodDatabaseView({
                       <span className="micro-pill tabular-nums">Vit D: {food.micros.vit_d}IU</span>
                     )}
                   </div>
+
+                  {/* Caution Nutrients highlights */}
+                  {food.cautions && (food.cautions.sodium > 0 || food.cautions.transFat > 0 || food.cautions.cholesterol > 0 || food.cautions.saturatedFat > 0 || food.cautions.addedSugar > 0) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '14px' }}>
+                      {food.cautions.sodium > 0 && (
+                        <span className="micro-pill tabular-nums" style={{ color: food.cautions.sodium > 400 ? '#f43f5e' : 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          🧂 {food.cautions.sodium}mg Na
+                        </span>
+                      )}
+                      {food.cautions.transFat > 0 && (
+                        <span className="micro-pill tabular-nums" style={{ color: '#f43f5e', background: 'rgba(244, 63, 94, 0.1)', borderColor: 'rgba(244, 63, 94, 0.3)' }}>
+                          ⚠️ {food.cautions.transFat}g Trans
+                        </span>
+                      )}
+                      {food.cautions.cholesterol > 0 && (
+                        <span className="micro-pill tabular-nums" style={{ color: food.cautions.cholesterol > 150 ? '#f59e0b' : 'var(--text-muted)' }}>
+                          🍳 {food.cautions.cholesterol}mg Chol
+                        </span>
+                      )}
+                      {food.cautions.saturatedFat > 0 && (
+                        <span className="micro-pill tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          Sat: {food.cautions.saturatedFat}g
+                        </span>
+                      )}
+                      {food.cautions.addedSugar > 0 && (
+                        <span className="micro-pill tabular-nums" style={{ color: '#ec4899' }}>
+                          🍬 {food.cautions.addedSugar}g Sugar
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Actions */}

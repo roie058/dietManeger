@@ -211,3 +211,116 @@ export function computeMicronutrientStats(meals = [], dailySupplemented = [], mi
   })
 }
 
+import { CAUTION_NUTRIENTS } from '../data/cautionNutrients'
+
+/**
+ * Compute daily totals for unhealthy habits and caution nutrients:
+ * Trans Fat, Dietary Cholesterol, Sodium/Salt, Saturated Fat, Added Sugar,
+ * Late-night eating, and Sodium-to-Potassium cardiovascular balance.
+ */
+export function computeCautionTotals(meals = [], userGender = 'male') {
+  const totals = {
+    transFat: 0,
+    cholesterol: 0,
+    sodium: 0,
+    saturatedFat: 0,
+    addedSugar: 0
+  }
+  let totalPotassium = 0
+  const lateNightMeals = []
+  let lateNightCalories = 0
+
+  meals.forEach(meal => {
+    const c = meal.cautions || {}
+    totals.transFat += parseFloat(c.transFat ?? meal.transFat ?? 0) || 0
+    totals.cholesterol += parseFloat(c.cholesterol ?? meal.cholesterol ?? 0) || 0
+    totals.sodium += parseFloat(c.sodium ?? meal.sodium ?? 0) || 0
+    totals.saturatedFat += parseFloat(c.saturatedFat ?? meal.saturatedFat ?? 0) || 0
+    totals.addedSugar += parseFloat(c.addedSugar ?? meal.addedSugar ?? 0) || 0
+
+    totalPotassium += parseFloat(meal.micros?.potassium || 0) || 0
+
+    // Late night intake detection (meals after 21:00 or before 04:00)
+    if (meal.time) {
+      const match = String(meal.time).match(/(\d{1,2}):(\d{2})/)
+      if (match) {
+        let hour = parseInt(match[1], 10)
+        if (/pm/i.test(meal.time) && hour < 12) hour += 12
+        if (/am/i.test(meal.time) && hour === 12) hour = 0
+        if (hour >= 21 || hour < 4) {
+          lateNightMeals.push(meal)
+          lateNightCalories += parseFloat(meal.calories || 0) || 0
+        }
+      }
+    }
+  })
+
+  // Normalize rounded values
+  totals.transFat = Math.round(totals.transFat * 10) / 10
+  totals.cholesterol = Math.round(totals.cholesterol)
+  totals.sodium = Math.round(totals.sodium)
+  totals.saturatedFat = Math.round(totals.saturatedFat * 10) / 10
+  totals.addedSugar = Math.round(totals.addedSugar * 10) / 10
+
+  const items = Object.entries(CAUTION_NUTRIENTS).map(([key, info]) => {
+    const val = totals[key] || 0
+    const limit = (key === 'addedSugar' && userGender === 'female') ? info.femaleLimit : info.dailyLimit
+    const percent = Math.round((val / limit) * 100)
+    let status = 'safe'
+    if (percent >= 100) status = 'exceeded'
+    else if (percent >= 75) status = 'caution'
+
+    // Find top contributor meal for this caution nutrient
+    let topContributor = null
+    let maxVal = 0
+    meals.forEach(m => {
+      const c = m.cautions || {}
+      const itemVal = parseFloat(c[key] ?? m[key] ?? 0) || 0
+      if (itemVal > maxVal) {
+        maxVal = itemVal
+        topContributor = { name: m.name, amount: Math.round(itemVal * 10) / 10 }
+      }
+    })
+
+    return {
+      ...info,
+      key,
+      value: val,
+      effectiveLimit: limit,
+      percent,
+      status,
+      topContributor
+    }
+  })
+
+  // Cardiovascular Sodium-to-Potassium balance ratio (Na:K)
+  const naKRatio = totalPotassium > 0 
+    ? Math.round((totals.sodium / totalPotassium) * 100) / 100 
+    : null
+
+  // Safety score from 100
+  let penalty = 0
+  items.forEach(item => {
+    if (item.status === 'exceeded') {
+      penalty += item.severity === 'critical' ? 25 : 15
+    } else if (item.status === 'caution') {
+      penalty += 6
+    }
+  })
+  if (lateNightCalories > 350) penalty += 12
+  if (naKRatio && naKRatio > 1.25) penalty += 10
+
+  const habitScore = Math.max(0, 100 - penalty)
+
+  return {
+    totals,
+    items,
+    totalPotassium,
+    naKRatio,
+    lateNightMeals,
+    lateNightCalories,
+    habitScore
+  }
+}
+
+

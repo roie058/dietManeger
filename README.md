@@ -42,6 +42,18 @@ A modern, science-based diet and healthy lifestyle application built with React,
 7. **💾 Local Storage Persistence**
    - All logs, biometric profile settings, and grocery items are automatically saved in the browser.
 
+8. **📱 Progressive Web App (PWA) & Offline Support**
+   - Standalone mobile app installation for iOS and Android
+   - Service worker asset caching with offline readiness
+   - Fast launch from home screen with app icon and theme color
+
+9. **⚠️ Unhealthy Habits & Dietary Caution Nutrients Tracker**
+   - Daily upper limit tracking for **Trans Fat** (0g limit), **Dietary Cholesterol** (&le;300mg), **Sodium / Salt** (&le;2300mg), **Saturated Fat** (&le;20g), and **Added Sugars** (&le;36g)
+   - **Cardiovascular Sodium-to-Potassium (Na:K) Ratio** clinical indicator (target &le;1.0)
+   - **Circadian Digestive Window**: Late-night eating detection (>350 kcal after 9:00 PM)
+   - Automatic extraction via Barcode scanning and OCR Nutrition Facts label reader
+   - Habit Safety Score (0–100%) with clinical countermeasures and food swaps
+
 ---
 
 ## 🛠️ Project Structure

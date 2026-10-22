@@ -1,0 +1,26 @@
+{
+  "name": "NutriFlow - Diet & Lifestyle Architect",
+  "short_name": "NutriFlow",
+  "description": "Science-based daily macros, body composition, micronutrients, unhealthy habit tracking, and batch meal prep manager.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0f18",
+  "theme_color": "#0a0f18",
+  "categories": ["health", "fitness", "lifestyle", "food"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

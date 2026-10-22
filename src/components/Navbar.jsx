@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Flame, 
   Target, 
@@ -8,10 +8,43 @@ import {
   ShoppingCart, 
   Sparkles,
   Calendar,
-  Database
+  Database,
+  Smartphone,
+  Download
 } from 'lucide-react'
 
 export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
+  const [canInstall, setCanInstall] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [isStandalone, setIsStandalone] = useState(false)
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      setIsStandalone(true)
+      return
+    }
+    const handler = (e) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setCanInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const res = await deferredPrompt.userChoice
+      if (res.outcome === 'accepted') {
+        setCanInstall(false)
+      }
+      setDeferredPrompt(null)
+    } else {
+      alert("To install NutriFlow on your phone: on iOS Safari tap 'Share' then 'Add to Home Screen'. On Android Chrome tap the 3 dots then 'Install App'.")
+    }
+  }
+
   const navItems = [
     { id: 'dashboard', label: 'Daily Macros', icon: Flame },
     { id: 'tdee', label: 'Goal & TDEE', icon: Target },
@@ -131,7 +164,29 @@ export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
         </nav>
 
         {/* Date & Streak Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {canInstall && !isStandalone && (
+            <button
+              type="button"
+              onClick={handleInstall}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: '0.78rem',
+                padding: '5px 10px',
+                color: 'var(--primary-light)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: 'rgba(16, 185, 129, 0.08)'
+              }}
+              title="Install NutriFlow as App on this device"
+            >
+              <Smartphone size={14} color="var(--primary-light)" />
+              <span>Install App</span>
+            </button>
+          )}
+
           <div style={{
             display: 'flex',
             alignItems: 'center',

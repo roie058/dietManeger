@@ -46,6 +46,13 @@ export function parseNutritionText(rawText) {
       potassium: 0,
       omega_3: 0
     },
+    cautions: {
+      transFat: 0,
+      cholesterol: 0,
+      sodium: 0,
+      saturatedFat: 0,
+      addedSugar: 0
+    },
     rawExtracted: {}
   }
 
@@ -210,6 +217,62 @@ export function parseNutritionText(rawText) {
   if (vitB12Val !== null) {
     result.micros.vit_b12 = Math.round(vitB12Val * 10) / 10
     result.rawExtracted.vit_b12 = vitB12Val
+  }
+
+  // Sodium / נתרן (mg)
+  const sodiumVal = findNumber([
+    /sodium/i,
+    /נתרן/i,
+    /salt/i,
+    /מלח/i
+  ])
+  if (sodiumVal !== null) {
+    result.cautions.sodium = Math.round(sodiumVal)
+    result.rawExtracted.sodium = sodiumVal
+  }
+
+  // Trans Fat / שומן טראנס (g)
+  const transFatVal = findNumber([
+    /trans\s*fat/i,
+    /חומצות\s*שומן\s*טראנס/i,
+    /שומן\s*טראנס/i
+  ])
+  if (transFatVal !== null) {
+    result.cautions.transFat = Math.round(transFatVal * 10) / 10
+    result.rawExtracted.transFat = transFatVal
+  }
+
+  // Dietary Cholesterol / כולסטרול (mg)
+  const cholesterolVal = findNumber([
+    /cholesterol/i,
+    /כולסטרול/i
+  ])
+  if (cholesterolVal !== null) {
+    result.cautions.cholesterol = Math.round(cholesterolVal)
+    result.rawExtracted.cholesterol = cholesterolVal
+  }
+
+  // Saturated Fat / שומן רווי (g)
+  const satFatVal = findNumber([
+    /saturated\s*fat/i,
+    /חומצות\s*שומן\s*רוויות/i,
+    /שומן\s*רווי/i
+  ])
+  if (satFatVal !== null) {
+    result.cautions.saturatedFat = Math.round(satFatVal * 10) / 10
+    result.rawExtracted.saturatedFat = satFatVal
+  }
+
+  // Added Sugars / סוכרים מוספים (g)
+  const addedSugarVal = findNumber([
+    /added\s*sugars?/i,
+    /סוכרים\s*מוספים/i,
+    /סוכר\s*מוסף/i,
+    /כפיות\s*סוכר/i
+  ])
+  if (addedSugarVal !== null) {
+    result.cautions.addedSugar = Math.round(addedSugarVal * 10) / 10
+    result.rawExtracted.addedSugar = addedSugarVal
   }
 
   // Serving size detection (e.g. 100g, 150g, 1 cup)

@@ -28,6 +28,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 5, 
     category: 'Protein',
     micros: { vit_b12: 0.6, zinc: 1.5, iron: 1.5, magnesium: 42, potassium: 384, vit_d: 10, vit_c: 0, calcium: 20, omega_3: 120, vit_a: 20 },
+    cautions: { transFat: 0, cholesterol: 110, sodium: 120, saturatedFat: 1.2, addedSugar: 0 },
     keyMicros: ['Vit B12', 'Zinc', 'Potassium']
   },
   { 
@@ -40,6 +41,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 5, 
     category: 'Carbs',
     micros: { magnesium: 110, iron: 3.8, zinc: 2.5, potassium: 360, vit_c: 15, vit_b12: 0, calcium: 60, omega_3: 150, vit_d: 0, vit_a: 35 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 4, saturatedFat: 0.8, addedSugar: 0 },
     keyMicros: ['Magnesium', 'Iron', 'Zinc', 'Vit C']
   },
   { 
@@ -52,6 +54,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 0, 
     category: 'Dairy',
     micros: { calcium: 220, vit_b12: 1.1, potassium: 280, zinc: 1.2, magnesium: 22, iron: 0.1, vit_d: 10, vit_c: 0, omega_3: 0, vit_a: 10 },
+    cautions: { transFat: 0, cholesterol: 10, sodium: 65, saturatedFat: 0, addedSugar: 0 },
     keyMicros: ['Calcium', 'Vit B12', 'Potassium']
   },
   { 
@@ -64,6 +67,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 10, 
     category: 'Protein',
     micros: { vit_d: 88, vit_b12: 1.1, iron: 1.8, zinc: 1.3, calcium: 56, magnesium: 12, potassium: 138, vit_a: 160, omega_3: 180, vit_c: 0 },
+    cautions: { transFat: 0, cholesterol: 372, sodium: 140, saturatedFat: 3.1, addedSugar: 0 },
     keyMicros: ['Vit D3', 'Vit B12', 'Vit A', 'Iron']
   },
   { 
@@ -76,6 +80,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 0.5, 
     category: 'Carbs',
     micros: { magnesium: 44, iron: 0.8, zinc: 1.2, potassium: 84, calcium: 10, vit_b12: 0, vit_d: 0, vit_c: 0, omega_3: 30, vit_a: 0 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 2, saturatedFat: 0.1, addedSugar: 0 },
     keyMicros: ['Magnesium', 'Zinc']
   },
   { 
@@ -88,6 +93,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 20, 
     category: 'Protein',
     micros: { omega_3: 2150, vit_d: 680, vit_b12: 4.8, potassium: 620, magnesium: 46, zinc: 0.9, iron: 0.9, calcium: 24, vit_c: 0, vit_a: 60 },
+    cautions: { transFat: 0, cholesterol: 85, sodium: 95, saturatedFat: 3.2, addedSugar: 0 },
     keyMicros: ['Omega-3 (179%)', 'Vit D3 (85%)', 'Vit B12 (200%)']
   },
   { 
@@ -100,6 +106,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 10, 
     category: 'Healthy Fats',
     micros: { potassium: 345, magnesium: 20, vit_c: 7, iron: 0.4, zinc: 0.4, calcium: 9, vit_a: 45, vit_b12: 0, vit_d: 0, omega_3: 75 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 5, saturatedFat: 1.5, addedSugar: 0 },
     keyMicros: ['Potassium', 'Magnesium', 'Vit C']
   },
   { 
@@ -112,6 +119,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 1.5, 
     category: 'Supplement',
     micros: { calcium: 140, potassium: 150, magnesium: 25, iron: 0.5, zinc: 0.5, vit_b12: 0.5, vit_d: 15, vit_c: 0, omega_3: 20, vit_a: 20 },
+    cautions: { transFat: 0, cholesterol: 35, sodium: 130, saturatedFat: 0.9, addedSugar: 0 },
     keyMicros: ['Calcium', 'Potassium', 'Vit B12']
   },
   { 
@@ -124,6 +132,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 0.1, 
     category: 'Carbs',
     micros: { vit_a: 960, vit_c: 22, potassium: 450, magnesium: 32, iron: 0.8, calcium: 38, zinc: 0.4, vit_d: 0, vit_b12: 0, omega_3: 10 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 72, saturatedFat: 0, addedSugar: 0 },
     keyMicros: ['Vit A (106%)', 'Potassium', 'Vit C']
   },
   { 
@@ -136,6 +145,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 13.5, 
     category: 'Healthy Fats',
     micros: { omega_3: 110, vit_a: 0, vit_c: 0, vit_d: 0, vit_b12: 0, magnesium: 0, zinc: 0, iron: 0.1, calcium: 0, potassium: 0 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 0, saturatedFat: 1.9, addedSugar: 0 },
     keyMicros: ['Omega-3', 'Polyphenols']
   },
   { 
@@ -148,6 +158,7 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 15, 
     category: 'Healthy Fats',
     micros: { magnesium: 78, calcium: 76, iron: 1.1, zinc: 1.0, potassium: 208, vit_c: 0, vit_d: 0, vit_b12: 0, omega_3: 15, vit_a: 1 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 1, saturatedFat: 1.1, addedSugar: 0 },
     keyMicros: ['Magnesium', 'Calcium', 'Iron']
   },
   { 
@@ -160,55 +171,86 @@ export const COMMON_FOOD_LIBRARY = [
     fat: 0.3, 
     category: 'Carbs',
     micros: { potassium: 422, vit_c: 10.3, magnesium: 32, iron: 0.3, calcium: 6, zinc: 0.2, vit_a: 8, vit_b12: 0, vit_d: 0, omega_3: 30 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 1, saturatedFat: 0.1, addedSugar: 0 },
     keyMicros: ['Potassium', 'Vit C', 'Magnesium']
   },
-  {
-    id: 'f13',
-    name: 'Steamed Baby Spinach & Kale',
-    serving: '1 bowl (100g cooked)',
-    calories: 35,
-    protein: 3,
-    carbs: 5,
-    fat: 0.5,
+  { 
+    id: 'f13', 
+    name: 'Steamed Baby Spinach & Kale', 
+    serving: '1 bowl (100g cooked)', 
+    calories: 35, 
+    protein: 3, 
+    carbs: 5, 
+    fat: 0.5, 
     category: 'Produce',
     micros: { vit_a: 750, vit_c: 65, iron: 3.2, magnesium: 70, calcium: 150, potassium: 500, zinc: 0.8, vit_b12: 0, vit_d: 0, omega_3: 180 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 70, saturatedFat: 0.1, addedSugar: 0 },
     keyMicros: ['Vit A', 'Vit C', 'Iron', 'Magnesium']
   },
-  {
-    id: 'f14',
-    name: 'Wild Sardines in Olive Oil',
-    serving: '1 tin (90g)',
-    calories: 190,
-    protein: 22,
-    carbs: 0,
-    fat: 11,
+  { 
+    id: 'f14', 
+    name: 'Wild Sardines in Olive Oil', 
+    serving: '1 tin (90g)', 
+    calories: 190, 
+    protein: 22, 
+    carbs: 0, 
+    fat: 11, 
     category: 'Protein',
     micros: { omega_3: 1400, vit_d: 200, vit_b12: 8.0, calcium: 350, iron: 2.5, magnesium: 35, potassium: 360, zinc: 1.3, vit_c: 0, vit_a: 32 },
+    cautions: { transFat: 0, cholesterol: 120, sodium: 320, saturatedFat: 2.5, addedSugar: 0 },
     keyMicros: ['Omega-3 (116%)', 'Calcium (35%)', 'Vit B12']
   },
-  {
-    id: 'f15',
-    name: 'Raw Pumpkin Seeds (Pepitas)',
-    serving: '1 handful (30g)',
-    calories: 170,
-    protein: 9,
-    carbs: 4,
-    fat: 14,
+  { 
+    id: 'f15', 
+    name: 'Raw Pumpkin Seeds (Pepitas)', 
+    serving: '1 handful (30g)', 
+    calories: 170, 
+    protein: 9, 
+    carbs: 4, 
+    fat: 14, 
     category: 'Healthy Fats',
     micros: { magnesium: 168, zinc: 2.3, iron: 2.6, potassium: 240, calcium: 15, omega_3: 100, vit_c: 0, vit_d: 0, vit_b12: 0, vit_a: 5 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 5, saturatedFat: 2.6, addedSugar: 0 },
     keyMicros: ['Magnesium (42%)', 'Zinc (21%)', 'Iron']
   },
-  {
-    id: 'f16',
-    name: 'Complete Daily Multivitamin & Mineral',
-    serving: '1 tablet',
-    calories: 5,
-    protein: 0,
-    carbs: 1,
-    fat: 0,
+  { 
+    id: 'f16', 
+    name: 'Complete Daily Multivitamin & Mineral', 
+    serving: '1 tablet', 
+    calories: 5, 
+    protein: 0, 
+    carbs: 1, 
+    fat: 0, 
     category: 'Supplement',
     micros: { vit_d: 800, vit_b12: 5.0, vit_c: 90, vit_a: 800, zinc: 11, iron: 10, magnesium: 100, calcium: 150, potassium: 100, omega_3: 0 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 0, saturatedFat: 0, addedSugar: 0 },
     keyMicros: ['100% Vit D3', '100% Vit C', '100% Zinc', 'Vit B12']
+  },
+  { 
+    id: 'f17', 
+    name: 'Dark Chocolate (85% Cocoa)', 
+    serving: '3 squares (30g)', 
+    calories: 175, 
+    protein: 2.8, 
+    carbs: 11, 
+    fat: 14, 
+    category: 'Snacks & Pantry',
+    micros: { magnesium: 65, iron: 3.4, zinc: 1.0, potassium: 215, calcium: 20, vit_d: 0, vit_b12: 0, vit_c: 0, vit_a: 0, omega_3: 10 },
+    cautions: { transFat: 0, cholesterol: 1, sodium: 6, saturatedFat: 8.5, addedSugar: 4.2 },
+    keyMicros: ['Iron', 'Magnesium']
+  },
+  { 
+    id: 'f18', 
+    name: 'Salted Roasted Cashews', 
+    serving: '1 handful (30g)', 
+    calories: 168, 
+    protein: 5.2, 
+    carbs: 9, 
+    fat: 13, 
+    category: 'Snacks & Pantry',
+    micros: { magnesium: 82, zinc: 1.7, iron: 1.9, potassium: 187, calcium: 12, vit_d: 0, vit_b12: 0, vit_c: 0, vit_a: 0, omega_3: 18 },
+    cautions: { transFat: 0, cholesterol: 0, sodium: 195, saturatedFat: 2.4, addedSugar: 0 },
+    keyMicros: ['Magnesium', 'Zinc']
   }
 ]
 
@@ -234,6 +276,13 @@ export const DEFAULT_MEAL_LOGS = [
       vit_a: 45,
       vit_d: 10,
       omega_3: 150
+    },
+    cautions: {
+      transFat: 0,
+      cholesterol: 10,
+      sodium: 69,
+      saturatedFat: 0.8,
+      addedSugar: 0
     }
   },
   {
@@ -257,6 +306,13 @@ export const DEFAULT_MEAL_LOGS = [
       vit_d: 10,
       calcium: 39,
       omega_3: 225
+    },
+    cautions: {
+      transFat: 0,
+      cholesterol: 110,
+      sodium: 127,
+      saturatedFat: 2.8,
+      addedSugar: 0
     }
   },
   {
@@ -280,6 +336,13 @@ export const DEFAULT_MEAL_LOGS = [
       vit_a: 28,
       vit_d: 15,
       omega_3: 50
+    },
+    cautions: {
+      transFat: 0,
+      cholesterol: 35,
+      sodium: 131,
+      saturatedFat: 1.0,
+      addedSugar: 0
     }
   }
 ]

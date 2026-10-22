@@ -15,6 +15,8 @@ import MealLogList from './MealLogList'
 import QuickFoodPicker from './QuickFoodPicker'
 import MacroGapFiller from './MacroGapFiller'
 import ExerciseTracker from './ExerciseTracker'
+import HealthCautionTracker from './HealthCautionTracker'
+import PwaInstallBanner from './PwaInstallBanner'
 
 export default function MacroDashboard({ 
   profile, 
@@ -94,6 +96,9 @@ export default function MacroDashboard({
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
+      {/* PWA Mobile & Desktop Install Prompt */}
+      <PwaInstallBanner />
+
       {/* Top Banner: Calories & Macronutrients */}
       <div className="glass-panel" style={{
         padding: '24px 28px',
@@ -259,6 +264,13 @@ export default function MacroDashboard({
         currentFat={totals.fat}
         foodLibrary={foodLibrary}
         onLogMeal={onAddMeal}
+      />
+
+      {/* Unhealthy Food Habits & Caution Nutrients Tracker (Trans fat, Cholesterol, Sodium/Salt, Sat. fat, Added Sugars, Late-night eating) */}
+      <HealthCautionTracker 
+        mealLogs={mealLogs}
+        userGender={profile.gender || 'male'}
+        onQuickLogMeal={onAddMeal}
       />
 
       {/* Daily Micronutrients & Minerals Tracker Section */}

@@ -74,6 +74,34 @@ export async function fetchProductByBarcode(barcode) {
       omega_3: Math.round(parseFloat(n['omega-3-fat_100g'] ?? 0) * 1000)
     }
 
+    // Caution nutrients & unhealthy habits tracking
+    const rawSodium = parseFloat(n.sodium_100g ?? n.sodium ?? 0)
+    const sodiumUnit = n.sodium_unit || 'g'
+    let sodiumMg = 0
+    if (rawSodium > 0) {
+      sodiumMg = sodiumUnit === 'mg' ? rawSodium : rawSodium * 1000
+    } else {
+      // Fallback: estimate from salt (1g salt = ~400mg sodium)
+      const rawSalt = parseFloat(n.salt_100g ?? n.salt ?? 0)
+      if (rawSalt > 0) {
+        const saltUnit = n.salt_unit || 'g'
+        const saltGrams = saltUnit === 'mg' ? rawSalt / 1000 : rawSalt
+        sodiumMg = saltGrams * 400
+      }
+    }
+
+    const rawCholesterol = parseFloat(n.cholesterol_100g ?? n.cholesterol ?? 0)
+    const cholUnit = n.cholesterol_unit || 'mg'
+    const cholesterolMg = cholUnit === 'g' ? rawCholesterol * 1000 : rawCholesterol
+
+    const cautions = {
+      transFat: Math.round(parseFloat(n['trans-fat_100g'] ?? n['trans-fat'] ?? 0) * 10) / 10,
+      cholesterol: Math.round(cholesterolMg),
+      sodium: Math.round(sodiumMg),
+      saturatedFat: Math.round(parseFloat(n['saturated-fat_100g'] ?? n['saturated-fat'] ?? 0) * 10) / 10,
+      addedSugar: Math.round(parseFloat(n['added-sugars_100g'] ?? n['sugars_100g'] ?? n['sugars'] ?? 0) * 10) / 10
+    }
+
     // Determine category based on macros or OpenFoodFacts categories
     let category = 'Snacks & Pantry'
     if (protein > 15 && protein > carbs && protein > fat) category = 'Protein'
@@ -91,6 +119,7 @@ export async function fetchProductByBarcode(barcode) {
       fat: Math.round(fat * 10) / 10,
       category,
       micros,
+      cautions,
       imageUrl: p.image_front_small_url || p.image_url || null,
       source: 'barcode'
     }

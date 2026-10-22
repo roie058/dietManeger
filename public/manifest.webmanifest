@@ -1,0 +1,46 @@
+{
+  "name": "NutriFlow - Diet & Lifestyle Architect",
+  "short_name": "NutriFlow",
+  "description": "Science-based daily macros, body composition, micronutrients, unhealthy habit tracking, and batch meal prep manager.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0f18",
+  "theme_color": "#0a0f18",
+  "categories": ["health", "fitness", "lifestyle", "food"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Daily Macros",
+      "short_name": "Macros",
+      "url": "/?tab=dashboard",
+      "description": "View daily calories and macronutrient progress"
+    },
+    {
+      "name": "Food Database",
+      "short_name": "Foods",
+      "url": "/?tab=foodlibrary",
+      "description": "Browse and search foods or scan barcodes"
+    },
+    {
+      "name": "Hydration Tracker",
+      "short_name": "Water",
+      "url": "/?tab=water",
+      "description": "Log daily water intake"
+    }
+  ]
+}

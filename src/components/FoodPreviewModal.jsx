@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, X, Sparkles } from 'lucide-react'
+import { Plus, X, Sparkles, ShieldAlert } from 'lucide-react'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
 
 export default function FoodPreviewModal({
@@ -89,6 +89,43 @@ export default function FoodPreviewModal({
               <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#fff' }}>{food.fat}g</div>
             </div>
           </div>
+
+          {/* Caution Nutrients Row */}
+          {food.cautions && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '10px',
+              padding: '10px 14px',
+              background: 'rgba(244, 63, 94, 0.05)',
+              border: '1px solid rgba(244, 63, 94, 0.2)',
+              borderRadius: 'var(--radius-md)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                <ShieldAlert size={14} color="#f43f5e" />
+                <span style={{ fontSize: '0.74rem', fontWeight: '700', color: '#f43f5e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Caution Markers Per Serving
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: food.cautions.sodium > 600 ? '#f43f5e' : 'var(--text-muted)' }}>
+                🧂 Sodium: <strong>{food.cautions.sodium ?? 0}mg</strong>
+              </span>
+              <span style={{ fontSize: '0.78rem', color: food.cautions.transFat > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
+                ⚠️ Trans Fat: <strong>{food.cautions.transFat ?? 0}g</strong>
+              </span>
+              <span style={{ fontSize: '0.78rem', color: food.cautions.cholesterol > 150 ? '#f59e0b' : 'var(--text-muted)' }}>
+                🍳 Cholesterol: <strong>{food.cautions.cholesterol ?? 0}mg</strong>
+              </span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                🧈 Sat. Fat: <strong>{food.cautions.saturatedFat ?? 0}g</strong>
+              </span>
+              {parseFloat(food.cautions.addedSugar) > 0 && (
+                <span style={{ fontSize: '0.78rem', color: '#ec4899' }}>
+                  🍬 Added Sugar: <strong>{food.cautions.addedSugar}g</strong>
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Full Micronutrients Table */}
           <div>

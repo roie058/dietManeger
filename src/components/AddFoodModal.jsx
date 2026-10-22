@@ -14,7 +14,8 @@ import {
   ArrowRight,
   RefreshCw,
   Eye,
-  Info
+  Info,
+  ShieldAlert
 } from 'lucide-react'
 import { fetchProductByBarcode, searchProductsByName, SAMPLE_BARCODES } from '../utils/barcodeService'
 import { parseNutritionText } from '../utils/nutritionOcrParser'
@@ -112,10 +113,18 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
       calcium: '',
       potassium: '',
       omega_3: ''
+    },
+    cautions: {
+      transFat: '',
+      cholesterol: '',
+      sodium: '',
+      saturatedFat: '',
+      addedSugar: ''
     }
   })
 
   const [showMicros, setShowMicros] = useState(false)
+  const [showCautions, setShowCautions] = useState(false)
   const [detectedFields, setDetectedFields] = useState({})
 
   // Barcode Mode States
@@ -160,6 +169,13 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     }))
   }
 
+  const handleCautionChange = (key, val) => {
+    setFoodData(prev => ({
+      ...prev,
+      cautions: { ...prev.cautions, [key]: val }
+    }))
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!foodData.name.trim()) return
@@ -187,6 +203,13 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         calcium: parseFloat(foodData.micros.calcium) || 0,
         potassium: parseFloat(foodData.micros.potassium) || 0,
         omega_3: parseFloat(foodData.micros.omega_3) || 0
+      },
+      cautions: {
+        transFat: parseFloat(foodData.cautions?.transFat) || 0,
+        cholesterol: parseFloat(foodData.cautions?.cholesterol) || 0,
+        sodium: parseFloat(foodData.cautions?.sodium) || 0,
+        saturatedFat: parseFloat(foodData.cautions?.saturatedFat) || 0,
+        addedSugar: parseFloat(foodData.cautions?.addedSugar) || 0
       }
     }
 
@@ -230,6 +253,13 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
           calcium: res.micros.calcium || '',
           potassium: res.micros.potassium || '',
           omega_3: res.micros.omega_3 || ''
+        },
+        cautions: {
+          transFat: res.cautions?.transFat ?? '',
+          cholesterol: res.cautions?.cholesterol ?? '',
+          sodium: res.cautions?.sodium ?? '',
+          saturatedFat: res.cautions?.saturatedFat ?? '',
+          addedSugar: res.cautions?.addedSugar ?? ''
         }
       })
       setDetectedFields({
@@ -237,8 +267,12 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         protein: true,
         carbs: true,
         fat: true,
-        ...res.micros
+        ...res.micros,
+        ...(res.cautions || {})
       })
+      if (res.cautions && Object.values(res.cautions).some(v => parseFloat(v) > 0)) {
+        setShowCautions(true)
+      }
       setActiveMode('manual') // switch to review populated data
     } catch (err) {
       setBarcodeError(err.message || 'Product could not be retrieved from the database.')
@@ -379,6 +413,13 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         calcium: parsed.micros.calcium || '',
         potassium: parsed.micros.potassium || '',
         omega_3: parsed.micros.omega_3 || ''
+      },
+      cautions: {
+        transFat: parsed.cautions?.transFat ?? '',
+        cholesterol: parsed.cautions?.cholesterol ?? '',
+        sodium: parsed.cautions?.sodium ?? '',
+        saturatedFat: parsed.cautions?.saturatedFat ?? '',
+        addedSugar: parsed.cautions?.addedSugar ?? ''
       }
     }))
 
@@ -388,6 +429,10 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
 
     if (Object.values(parsed.micros).some(v => v > 0)) {
       setShowMicros(true)
+    }
+
+    if (parsed.cautions && Object.values(parsed.cautions).some(v => parseFloat(v) > 0)) {
+      setShowCautions(true)
     }
 
     setActiveMode('manual') // switch to review populated data
@@ -1266,6 +1311,128 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                         value={foodData.micros.omega_3}
                         onChange={(e) => handleMicroChange('omega_3', e.target.value)}
                         className="input-field"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Collapsible Unhealthy Habits & Caution Nutrients Section */}
+              <div style={{
+                border: '1px solid rgba(244, 63, 94, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                background: 'rgba(244, 63, 94, 0.02)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCautions(!showCautions)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: 'rgba(244, 63, 94, 0.06)',
+                    border: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--text-main)',
+                    fontSize: '0.86rem',
+                    fontWeight: '600'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldAlert size={16} color="#f43f5e" />
+                    <span>Unhealthy Food Habits & Caution Nutrients (Sodium, Trans Fat, Cholesterol...)</span>
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: '#f43f5e', fontWeight: '700' }}>
+                    {showCautions ? 'Hide ▲' : 'Expand ▼'}
+                  </span>
+                </button>
+
+                {showCautions && (
+                  <div style={{
+                    padding: '16px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: '12px',
+                    background: 'rgba(0, 0, 0, 0.25)'
+                  }}>
+                    <div className="input-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Sodium / Salt (mg)</label>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 2300mg</span>
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={foodData.cautions?.sodium || ''}
+                        onChange={(e) => handleCautionChange('sodium', e.target.value)}
+                        className="input-field"
+                        style={{ borderColor: detectedFields.sodium ? '#38bdf8' : undefined }}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Trans Fat (g)</label>
+                        <span style={{ fontSize: '0.62rem', color: '#f43f5e', fontWeight: '700' }}>0g limit</span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="0"
+                        value={foodData.cautions?.transFat || ''}
+                        onChange={(e) => handleCautionChange('transFat', e.target.value)}
+                        className="input-field"
+                        style={{ borderColor: detectedFields.transFat ? '#f43f5e' : undefined }}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Cholesterol (mg)</label>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 300mg</span>
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={foodData.cautions?.cholesterol || ''}
+                        onChange={(e) => handleCautionChange('cholesterol', e.target.value)}
+                        className="input-field"
+                        style={{ borderColor: detectedFields.cholesterol ? '#f59e0b' : undefined }}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Saturated Fat (g)</label>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 20g</span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="0"
+                        value={foodData.cautions?.saturatedFat || ''}
+                        onChange={(e) => handleCautionChange('saturatedFat', e.target.value)}
+                        className="input-field"
+                        style={{ borderColor: detectedFields.saturatedFat ? '#fb923c' : undefined }}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Added Sugars (g)</label>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 36g</span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="0"
+                        value={foodData.cautions?.addedSugar || ''}
+                        onChange={(e) => handleCautionChange('addedSugar', e.target.value)}
+                        className="input-field"
+                        style={{ borderColor: detectedFields.addedSugar ? '#ec4899' : undefined }}
                       />
                     </div>
                   </div>
