@@ -81,6 +81,10 @@ export default function App() {
     loadStorage('nutriflow_streak', 6)
   )
 
+  const [isNetCalorieMode, setIsNetCalorieMode] = useState(() => 
+    loadStorage('nutriflow_net_mode', false)
+  )
+
   // Centralized Food Library state
   const [foodLibrary, setFoodLibrary] = useState(() => 
     loadStorage('nutriflow_food_library', COMMON_FOOD_LIBRARY)
@@ -95,6 +99,10 @@ export default function App() {
   useEffect(() => {
     saveStorage('nutriflow_profile', profile)
   }, [profile])
+
+  useEffect(() => {
+    saveStorage('nutriflow_net_mode', isNetCalorieMode)
+  }, [isNetCalorieMode])
 
   useEffect(() => {
     saveStorage('nutriflow_history', dailyHistory)
@@ -214,6 +222,41 @@ export default function App() {
     if (dateKey === selectedDate || dateKey === todayDateStr) {
       setProfile(p => ({ ...p, weight: weightVal }))
     }
+  }
+
+  const handleAddWorkout = (newWorkout) => {
+    setDailyHistory(prev => {
+      const day = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
+      const currentWorkouts = day.workouts || []
+      return {
+        ...prev,
+        [selectedDate]: { ...day, workouts: [newWorkout, ...currentWorkouts] }
+      }
+    })
+  }
+
+  const handleDeleteWorkout = (workoutId) => {
+    const day = dailyHistory[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
+    const workoutToDelete = (day.workouts || []).find(w => w.id === workoutId)
+    if (!workoutToDelete) return
+
+    setDailyHistory(prev => {
+      const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
+      return {
+        ...prev,
+        [selectedDate]: { ...d, workouts: (d.workouts || []).filter(w => w.id !== workoutId) }
+      }
+    })
+
+    showUndoToast(`Removed workout “${workoutToDelete.name}”`, () => {
+      setDailyHistory(prev => {
+        const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
+        return {
+          ...prev,
+          [selectedDate]: { ...d, workouts: [workoutToDelete, ...(d.workouts || [])] }
+        }
+      })
+    })
   }
 
   const handleToggleShopping = (id) => {
@@ -340,6 +383,11 @@ export default function App() {
                 onNavigateTab={setActiveTab}
                 selectedDate={selectedDate}
                 onOpenAnalytics={() => setDashboardViewMode('analytics')}
+                workouts={currentDayRecord.workouts || []}
+                onAddWorkout={handleAddWorkout}
+                onDeleteWorkout={handleDeleteWorkout}
+                isNetMode={isNetCalorieMode}
+                onToggleNetMode={() => setIsNetCalorieMode(!isNetCalorieMode)}
               />
             ) : (
               <HistoricalAnalytics 

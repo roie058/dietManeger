@@ -30,6 +30,7 @@ import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
 import { formatDisplayDate } from '../utils/dateUtils'
 import AddFoodModal from './AddFoodModal'
 import MacroGapFiller from './MacroGapFiller'
+import ExerciseTracker from './ExerciseTracker'
 
 export default function MacroDashboard({ 
   profile, 
@@ -42,7 +43,12 @@ export default function MacroDashboard({
   onAddNewFoodToLibrary,
   onNavigateTab,
   selectedDate,
-  onOpenAnalytics
+  onOpenAnalytics,
+  workouts = [],
+  onAddWorkout,
+  onDeleteWorkout,
+  isNetMode = false,
+  onToggleNetMode
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFoodCategory, setSelectedFoodCategory] = useState('All')
@@ -111,8 +117,15 @@ export default function MacroDashboard({
   const targetCarbs = profile.targetCarbs || 230
   const targetFat = profile.targetFat || 65
 
-  const calRemaining = Math.max(0, targetCal - Math.round(totals.calories))
-  const calPercent = Math.min(100, Math.round((totals.calories / targetCal) * 100))
+  const totalBurnedCalories = workouts.reduce((sum, w) => sum + (Number(w.caloriesBurned) || 0), 0)
+  const grossCalories = Math.round(totals.calories)
+  const netCalories = Math.max(0, grossCalories - totalBurnedCalories)
+  const effectiveCalories = isNetMode ? netCalories : grossCalories
+
+  const calRemaining = isNetMode 
+    ? Math.max(0, targetCal - netCalories) 
+    : Math.max(0, targetCal - grossCalories)
+  const calPercent = Math.min(100, Math.round((effectiveCalories / targetCal) * 100))
   const proteinPercent = Math.min(100, Math.round((totals.protein / targetProtein) * 100))
   const carbsPercent = Math.min(100, Math.round((totals.carbs / targetCarbs) * 100))
   const fatPercent = Math.min(100, Math.round((totals.fat / targetFat) * 100))
@@ -397,16 +410,28 @@ export default function MacroDashboard({
               </button>
             )}
           </div>
-          <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '4px' }}>
-            {Math.round(totals.calories)}{' '}
-            <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)', fontWeight: '400' }}>
-              / {targetCal} kcal
-            </span>
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: '800' }}>
+              {effectiveCalories}{' '}
+              <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)', fontWeight: '400' }}>
+                / {targetCal} kcal {isNetMode ? '(Net)' : ''}
+              </span>
+            </h2>
+            {totalBurnedCalories > 0 && (
+              <span className="badge badge-amber" style={{ fontSize: '0.72rem' }}>
+                🔥 {totalBurnedCalories} kcal burned
+              </span>
+            )}
+            {isNetMode && totalBurnedCalories > 0 && (
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
+                ({grossCalories} in - {totalBurnedCalories} out)
+              </span>
+            )}
+          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             {calRemaining > 0 ? (
               <span style={{ color: 'var(--primary-light)', fontWeight: '600' }}>
-                {calRemaining} kcal remaining today
+                {calRemaining} kcal remaining {isNetMode ? '(Net after workouts)' : 'today'}
               </span>
             ) : (
               <span style={{ color: 'var(--accent-yellow)', fontWeight: '600' }}>
@@ -827,6 +852,27 @@ export default function MacroDashboard({
           </div>
         )}
       </div>
+
+      {/* Active Workout & Exercise Calorie Burn Tracker */}
+      <ExerciseTracker 
+        workouts={workouts}
+        onAddWorkout={onAddWorkout}
+        onDeleteWorkout={onDeleteWorkout}
+        isNetMode={isNetMode}
+        onToggleNetMode={onToggleNetMode}
+        onLogQuickRecoverySnack={() => {
+          const whey = foodLibrary.find(f => f.name.toLowerCase().includes('whey')) || {
+            name: 'Whey Protein Shake',
+            calories: 120,
+            protein: 24,
+            carbs: 2,
+            fat: 1.5,
+            serving: '1 scoop (30g)',
+            micros: { calcium: 140, potassium: 150, magnesium: 25, vit_b12: 0.5 }
+          }
+          handleQuickAdd(whey)
+        }}
+      />
 
       {/* Main Content: Food Logger & Quick Foods */}
       <div style={{
