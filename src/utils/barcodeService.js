@@ -2,6 +2,7 @@
  * Barcode & Open Food Facts Service
  * Queries Open Food Facts API for product details, macros and micronutrients
  */
+import { calculateCaloriesFromMacros } from './calculators'
 
 export const SAMPLE_BARCODES = [
   { barcode: '7290000045231', name: 'Fresh Cottage Cheese 5%', category: 'Dairy' },
@@ -56,7 +57,7 @@ export async function fetchProductByBarcode(barcode) {
 
     // Calculate calories if missing
     if (!calories && (protein || carbs || fat)) {
-      calories = Math.round((protein * 4) + (carbs * 4) + (fat * 9))
+      calories = calculateCaloriesFromMacros(protein, carbs, fat)
     }
 
     // Micronutrients parsing

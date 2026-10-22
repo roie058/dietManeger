@@ -144,3 +144,70 @@ export function calculateBodyComposition({ weight = 75, bodyFatPercent = 15 }) {
   }
 }
 
+/**
+ * Standard Atwater general factor calculation for calories from macros
+ * Protein: 4 kcal/g, Carbs: 4 kcal/g, Fat: 9 kcal/g
+ */
+export function calculateCaloriesFromMacros(protein = 0, carbs = 0, fat = 0) {
+  const p = parseFloat(protein) || 0
+  const c = parseFloat(carbs) || 0
+  const f = parseFloat(fat) || 0
+  return Math.round(p * 4 + c * 4 + f * 9)
+}
+
+/**
+ * Aggregate daily or list-based meal macronutrients
+ */
+export function aggregateMacroTotals(meals = []) {
+  return meals.reduce((acc, item) => ({
+    calories: acc.calories + (Number(item.calories) || 0),
+    protein: acc.protein + (Number(item.protein) || 0),
+    carbs: acc.carbs + (Number(item.carbs) || 0),
+    fat: acc.fat + (Number(item.fat) || 0)
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 })
+}
+
+/**
+ * Compute comprehensive micronutrient totals and statistics against RDA targets
+ */
+export function computeMicronutrientStats(meals = [], dailySupplemented = [], micronutrientsList = []) {
+  const microTotals = micronutrientsList.reduce((acc, micro) => {
+    const sum = meals.reduce((total, meal) => {
+      const val = meal.micros?.[micro.id] || 0
+      return total + (parseFloat(val) || 0)
+    }, 0)
+    acc[micro.id] = Math.round(sum * 10) / 10
+    return acc
+  }, {})
+
+  return micronutrientsList.map((micro) => {
+    const current = microTotals[micro.id] || 0
+    const target = micro.targetValue || 100
+    const percent = Math.round((current / target) * 100)
+    const isMet = current >= target
+    const isSupplemented = dailySupplemented.includes(micro.id)
+    const isCovered = isMet || isSupplemented
+
+    let topContributor = null
+    let maxVal = 0
+    meals.forEach(meal => {
+      const mVal = parseFloat(meal.micros?.[micro.id]) || 0
+      if (mVal > maxVal) {
+        maxVal = mVal
+        topContributor = { name: meal.name, amount: mVal }
+      }
+    })
+
+    return {
+      ...micro,
+      current,
+      target,
+      percent,
+      isMet,
+      isSupplemented,
+      isCovered,
+      topContributor
+    }
+  })
+}
+

@@ -3,6 +3,7 @@
  * Extracts Calories, Macronutrients and Micronutrients from OCR text
  * Supports both Hebrew (סימון תזונתי) and English (Nutrition Facts) formats.
  */
+import { calculateCaloriesFromMacros } from './calculators'
 
 export function parseNutritionText(rawText) {
   if (!rawText || typeof rawText !== 'string') {
@@ -221,7 +222,7 @@ export function parseNutritionText(rawText) {
 
   // Guess calories from macros if calories wasn't clearly parsed or is 0
   if (!result.calories && (result.protein > 0 || result.carbs > 0 || result.fat > 0)) {
-    result.calories = Math.round((result.protein * 4) + (result.carbs * 4) + (result.fat * 9))
+    result.calories = calculateCaloriesFromMacros(result.protein, result.carbs, result.fat)
   }
 
   return result

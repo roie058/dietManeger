@@ -18,8 +18,6 @@ import {
 } from 'lucide-react'
 import { fetchProductByBarcode, searchProductsByName, SAMPLE_BARCODES } from '../utils/barcodeService'
 import { parseNutritionText } from '../utils/nutritionOcrParser'
-import Tesseract from 'tesseract.js'
-import { Html5Qrcode } from 'html5-qrcode'
 
 // Sample Label Templates for instant test without needing to upload
 const SAMPLE_OCR_TEMPLATES = [
@@ -82,8 +80,14 @@ Potassium: 733mg`
   }
 ]
 
-export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '' }) {
-  const [activeMode, setActiveMode] = useState('manual') // 'manual' | 'barcode' | 'ocr'
+export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '', initialMode = 'manual' }) {
+  const [activeMode, setActiveMode] = useState(initialMode) // 'manual' | 'barcode' | 'ocr'
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveMode(initialMode)
+    }
+  }, [isOpen, initialMode])
 
   // Food Form State
   const [foodData, setFoodData] = useState({
@@ -243,32 +247,38 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     }
   }
 
-  const startCameraScanner = () => {
+  const startCameraScanner = async () => {
     setCameraActive(true)
     setBarcodeError('')
-    setTimeout(() => {
-      try {
-        const html5QrCode = new Html5Qrcode("interactive-barcode-reader")
-        scannerRef.current = html5QrCode
-        html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 260, height: 160 } },
-          (decodedText) => {
-            setBarcodeInput(decodedText)
-            handleBarcodeLookup(decodedText)
-          },
-          (err) => {
-            // Scanner scanning frame callback, ignore frame noise
-          }
-        ).catch((err) => {
-          setBarcodeError('Camera access failed: ' + (err.message || 'Check browser permissions'))
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode')
+      setTimeout(() => {
+        try {
+          const html5QrCode = new Html5Qrcode("interactive-barcode-reader")
+          scannerRef.current = html5QrCode
+          html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 260, height: 160 } },
+            (decodedText) => {
+              setBarcodeInput(decodedText)
+              handleBarcodeLookup(decodedText)
+            },
+            (err) => {
+              // Scanner scanning frame callback, ignore frame noise
+            }
+          ).catch((err) => {
+            setBarcodeError('Camera access failed: ' + (err.message || 'Check browser permissions'))
+            setCameraActive(false)
+          })
+        } catch (e) {
+          setBarcodeError('Could not initialize scanner: ' + e.message)
           setCameraActive(false)
-        })
-      } catch (e) {
-        setBarcodeError('Could not initialize scanner: ' + e.message)
-        setCameraActive(false)
-      }
-    }, 200)
+        }
+      }, 200)
+    } catch (importErr) {
+      setBarcodeError('Failed to load barcode scanner engine: ' + importErr.message)
+      setCameraActive(false)
+    }
   }
 
   const stopCameraScanner = () => {
@@ -319,6 +329,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setOcrStatusText('Loading OCR engine…')
 
     try {
+      const { default: Tesseract } = await import('tesseract.js')
       const res = await Tesseract.recognize(
         selectedImage || imagePreviewUrl,
         'eng',
