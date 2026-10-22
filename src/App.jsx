@@ -7,6 +7,9 @@ import WaterTracker from './components/WaterTracker'
 import MealPlanner from './components/MealPlanner'
 import FoodDatabaseView from './components/FoodDatabaseView'
 import ShoppingList from './components/ShoppingList'
+import DateNavigator from './components/DateNavigator'
+import HistoricalAnalytics from './components/HistoricalAnalytics'
+import { getTodayDateString, generateInitialHistory, addDays, formatDisplayDate } from './utils/dateUtils'
 
 import { 
   DEFAULT_USER_PROFILE, 
@@ -38,22 +41,37 @@ export default function App() {
     setUndoToast(null)
   }
 
+  // Date & View Selection State
+  const todayDateStr = getTodayDateString()
+  const [selectedDate, setSelectedDate] = useState(() => todayDateStr)
+  const [dashboardViewMode, setDashboardViewMode] = useState('day') // 'day' | 'analytics'
+
   // Persistent States
   const [profile, setProfile] = useState(() => 
     loadStorage('nutriflow_profile', DEFAULT_USER_PROFILE)
   )
 
-  const [mealLogs, setMealLogs] = useState(() => 
-    loadStorage('nutriflow_meals', DEFAULT_MEAL_LOGS)
-  )
+  // Centralized Daily History state (date-keyed for multi-day logs and historical analytics)
+  const [dailyHistory, setDailyHistory] = useState(() => {
+    const saved = loadStorage('nutriflow_history', null)
+    if (saved && Object.keys(saved).length > 0) return saved
+    const legacyMeals = loadStorage('nutriflow_meals', DEFAULT_MEAL_LOGS)
+    const legacyWater = loadStorage('nutriflow_water', 1750)
+    const legacyVitamins = loadStorage('nutriflow_vitamins', ['vit_d', 'magnesium', 'omega_3'])
+    const initialHist = generateInitialHistory(legacyMeals, legacyWater, DEFAULT_USER_PROFILE.weight || 76)
+    if (initialHist[todayDateStr]) {
+      initialHist[todayDateStr].vitamins = legacyVitamins
+    }
+    return initialHist
+  })
 
-  const [currentWater, setCurrentWater] = useState(() => 
-    loadStorage('nutriflow_water', 1750)
-  )
-
-  const [dailyVitaminsCovered, setDailyVitaminsCovered] = useState(() => 
-    loadStorage('nutriflow_vitamins', ['vit_d', 'magnesium', 'omega_3'])
-  )
+  // Selected Day's Record
+  const currentDayRecord = dailyHistory[selectedDate] || {
+    mealLogs: [],
+    water: 0,
+    weight: profile.weight || 76,
+    vitamins: []
+  }
 
   const [shoppingItems, setShoppingItems] = useState(() => 
     loadStorage('nutriflow_shopping', DEFAULT_SHOPPING_LIST)
@@ -79,16 +97,14 @@ export default function App() {
   }, [profile])
 
   useEffect(() => {
-    saveStorage('nutriflow_meals', mealLogs)
-  }, [mealLogs])
-
-  useEffect(() => {
-    saveStorage('nutriflow_water', currentWater)
-  }, [currentWater])
-
-  useEffect(() => {
-    saveStorage('nutriflow_vitamins', dailyVitaminsCovered)
-  }, [dailyVitaminsCovered])
+    saveStorage('nutriflow_history', dailyHistory)
+    // Keep legacy single-day keys synchronized for backward compatibility
+    if (dailyHistory[todayDateStr]) {
+      saveStorage('nutriflow_meals', dailyHistory[todayDateStr].mealLogs || [])
+      saveStorage('nutriflow_water', dailyHistory[todayDateStr].water || 0)
+      saveStorage('nutriflow_vitamins', dailyHistory[todayDateStr].vitamins || [])
+    }
+  }, [dailyHistory, todayDateStr])
 
   useEffect(() => {
     saveStorage('nutriflow_shopping', shoppingItems)
@@ -104,15 +120,36 @@ export default function App() {
 
   // --- Actions with Undo Support ---
   const handleAddMeal = (newMeal) => {
-    setMealLogs([newMeal, ...mealLogs])
+    setDailyHistory(prev => {
+      const day = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+      return {
+        ...prev,
+        [selectedDate]: { ...day, mealLogs: [newMeal, ...day.mealLogs] }
+      }
+    })
   }
 
   const handleDeleteMeal = (id) => {
-    const mealToDelete = mealLogs.find(m => m.id === id)
+    const day = dailyHistory[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+    const mealToDelete = day.mealLogs.find(m => m.id === id)
     if (!mealToDelete) return
-    setMealLogs(mealLogs.filter(m => m.id !== id))
+
+    setDailyHistory(prev => {
+      const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+      return {
+        ...prev,
+        [selectedDate]: { ...d, mealLogs: d.mealLogs.filter(m => m.id !== id) }
+      }
+    })
+
     showUndoToast(`Deleted “${mealToDelete.name}”`, () => {
-      setMealLogs(prev => [mealToDelete, ...prev])
+      setDailyHistory(prev => {
+        const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+        return {
+          ...prev,
+          [selectedDate]: { ...d, mealLogs: [mealToDelete, ...d.mealLogs] }
+        }
+      })
     })
   }
 
@@ -121,22 +158,61 @@ export default function App() {
   }
 
   const handleToggleVitamin = (id) => {
-    if (dailyVitaminsCovered.includes(id)) {
-      setDailyVitaminsCovered(dailyVitaminsCovered.filter(v => v !== id))
-    } else {
-      setDailyVitaminsCovered([...dailyVitaminsCovered, id])
-    }
+    setDailyHistory(prev => {
+      const day = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+      const currentVits = day.vitamins || []
+      const updated = currentVits.includes(id) 
+        ? currentVits.filter(v => v !== id) 
+        : [...currentVits, id]
+      return {
+        ...prev,
+        [selectedDate]: { ...day, vitamins: updated }
+      }
+    })
   }
 
   const handleUpdateWater = (newAmount) => {
-    if (newAmount === 0 && currentWater > 0) {
-      const prevWater = currentWater
-      setCurrentWater(0)
+    const day = dailyHistory[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+    const prevWater = day.water || 0
+
+    if (newAmount === 0 && prevWater > 0) {
+      setDailyHistory(prev => {
+        const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+        return {
+          ...prev,
+          [selectedDate]: { ...d, water: 0 }
+        }
+      })
       showUndoToast('Water intake reset to 0 ml', () => {
-        setCurrentWater(prevWater)
+        setDailyHistory(prev => {
+          const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+          return {
+            ...prev,
+            [selectedDate]: { ...d, water: prevWater }
+          }
+        })
       })
     } else {
-      setCurrentWater(newAmount)
+      setDailyHistory(prev => {
+        const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
+        return {
+          ...prev,
+          [selectedDate]: { ...d, water: newAmount }
+        }
+      })
+    }
+  }
+
+  const handleUpdateWeightForDate = (dateKey, weightVal) => {
+    setDailyHistory(prev => {
+      const d = prev[dateKey] || { mealLogs: [], water: 0, weight: weightVal, vitamins: [] }
+      return {
+        ...prev,
+        [dateKey]: { ...d, weight: weightVal }
+      }
+    })
+    if (dateKey === selectedDate || dateKey === todayDateStr) {
+      setProfile(p => ({ ...p, weight: weightVal }))
     }
   }
 
@@ -242,17 +318,40 @@ export default function App() {
         }}
       >
         {activeTab === 'dashboard' && (
-          <MacroDashboard 
-            profile={profile}
-            mealLogs={mealLogs}
-            onAddMeal={handleAddMeal}
-            onDeleteMeal={handleDeleteMeal}
-            dailyVitaminsCovered={dailyVitaminsCovered}
-            onToggleVitamin={handleToggleVitamin}
-            foodLibrary={foodLibrary}
-            onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
-            onNavigateTab={setActiveTab}
-          />
+          <div>
+            <DateNavigator 
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              viewMode={dashboardViewMode}
+              onChangeViewMode={setDashboardViewMode}
+              streakCount={streakCount}
+            />
+
+            {dashboardViewMode === 'day' ? (
+              <MacroDashboard 
+                profile={profile}
+                mealLogs={currentDayRecord.mealLogs || []}
+                onAddMeal={handleAddMeal}
+                onDeleteMeal={handleDeleteMeal}
+                dailyVitaminsCovered={currentDayRecord.vitamins || []}
+                onToggleVitamin={handleToggleVitamin}
+                foodLibrary={foodLibrary}
+                onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
+                onNavigateTab={setActiveTab}
+                selectedDate={selectedDate}
+                onOpenAnalytics={() => setDashboardViewMode('analytics')}
+              />
+            ) : (
+              <HistoricalAnalytics 
+                dailyHistory={dailyHistory}
+                profile={profile}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+                onUpdateWeightForDate={handleUpdateWeightForDate}
+                onSwitchToDayView={() => setDashboardViewMode('day')}
+              />
+            )}
+          </div>
         )}
 
         {activeTab === 'tdee' && (
@@ -285,15 +384,15 @@ export default function App() {
 
         {activeTab === 'vitamins' && (
           <VitaminGuide 
-            dailyVitaminsCovered={dailyVitaminsCovered}
+            dailyVitaminsCovered={currentDayRecord.vitamins || []}
             onToggleVitamin={handleToggleVitamin}
-            mealLogs={mealLogs}
+            mealLogs={currentDayRecord.mealLogs || []}
           />
         )}
 
         {activeTab === 'water' && (
           <WaterTracker 
-            currentWater={currentWater}
+            currentWater={currentDayRecord.water || 0}
             waterGoal={profile.waterGoal || 3200}
             onUpdateWater={handleUpdateWater}
           />

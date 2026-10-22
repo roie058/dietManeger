@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { COMMON_FOOD_LIBRARY } from '../data/initialData'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
+import { formatDisplayDate } from '../utils/dateUtils'
 import AddFoodModal from './AddFoodModal'
 
 export default function MacroDashboard({ 
@@ -38,7 +39,9 @@ export default function MacroDashboard({
   onToggleVitamin,
   foodLibrary = COMMON_FOOD_LIBRARY,
   onAddNewFoodToLibrary,
-  onNavigateTab
+  onNavigateTab,
+  selectedDate,
+  onOpenAnalytics
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFoodCategory, setSelectedFoodCategory] = useState('All')
@@ -372,11 +375,26 @@ export default function MacroDashboard({
       }}>
         {/* Main Calorie Summary */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span className="badge badge-emerald">Daily Nutrition Fuel</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Goal: {profile.goal?.replace(/_/g, ' ') || 'Maintain'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-emerald">
+                {selectedDate ? formatDisplayDate(selectedDate) : 'Daily Nutrition Fuel'}
+              </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Goal: {profile.goal?.replace(/_/g, ' ') || 'Maintain'}
+              </span>
+            </div>
+            {onOpenAnalytics && (
+              <button
+                type="button"
+                onClick={onOpenAnalytics}
+                className="btn btn-sm btn-secondary"
+                style={{ fontSize: '0.74rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <TrendingUp size={12} color="var(--primary-light)" />
+                <span>Multi-Day Trends</span>
+              </button>
+            )}
           </div>
           <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '4px' }}>
             {Math.round(totals.calories)}{' '}
