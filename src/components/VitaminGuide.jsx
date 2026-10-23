@@ -1,13 +1,9 @@
 import React, { useState } from 'react'
 import { 
-  Pill, 
-  Sparkles, 
   CheckCircle, 
   Circle, 
   AlertTriangle, 
-  Info, 
-  Search, 
-  ShieldCheck 
+  Search 
 } from 'lucide-react'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'
 

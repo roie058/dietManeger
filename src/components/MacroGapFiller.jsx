@@ -2,15 +2,9 @@ import React, { useState, useMemo } from 'react'
 import { 
   Sparkles, 
   Plus, 
-  Check, 
   ChevronDown, 
   ChevronUp, 
-  Flame, 
-  Zap, 
-  Utensils, 
-  Award,
-  CheckCircle2,
-  SlidersHorizontal
+  CheckCircle2
 } from 'lucide-react'
 
 export default function MacroGapFiller({

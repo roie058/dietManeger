@@ -90,12 +90,39 @@ dietManeger/
 
 ---
 
-## 💻 Running Locally
+## 💻 Getting Started & Scripts
 
-To start the local development server:
+### 1. Install Dependencies
+```bash
+npm install
+```
 
+### 2. Configure Environment Variables (Optional)
+NutriFlow works 100% offline and locally out of the box. For cloud synchronization across devices, copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+And set your Supabase credentials:
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-public-key
+```
+
+### 3. Start Development Server
 ```bash
 npm run dev
 ```
+Open your browser to `http://localhost:3000`.
 
-Then open your browser to `http://localhost:3000`.
+### 4. Build for Production
+```bash
+npm run build
+```
+Creates an optimized production bundle with vendor chunking in `dist/`.
+
+### 5. Preview Production Build
+```bash
+npm run preview
+```

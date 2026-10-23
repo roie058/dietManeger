@@ -1,14 +1,10 @@
 import React, { useState } from 'react'
 import { 
   ShoppingCart, 
-  Check, 
   Square, 
   CheckSquare, 
   Plus, 
-  Trash2, 
-  Sparkles, 
-  RotateCcw,
-  PackageCheck
+  Trash2
 } from 'lucide-react'
 
 export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, onDeleteItem, onClearCompleted }) {

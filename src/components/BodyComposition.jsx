@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { 
-  Activity, 
   Sparkles, 
   Check, 
   Trash2, 
   Plus, 
-  TrendingDown, 
-  TrendingUp, 
   Scale, 
-  Info,
-  Calendar,
-  Layers,
-  ChevronRight
+  Calendar
 } from 'lucide-react'
 import { 
   calculateBodyFatNavy, 

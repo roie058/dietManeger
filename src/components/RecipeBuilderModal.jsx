@@ -5,15 +5,10 @@ import {
   Plus, 
   Trash2, 
   ChefHat, 
-  Clock, 
   Flame, 
-  Sparkles, 
   Scale, 
-  BookOpen, 
   Check, 
-  AlertCircle,
-  Barcode,
-  Camera
+  Barcode
 } from 'lucide-react'
 import { calculateRecipeNutrition, parseServingGrams } from '../utils/recipeCalculator'
 import AddFoodModal from './AddFoodModal'

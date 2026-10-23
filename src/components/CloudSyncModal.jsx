@@ -8,14 +8,12 @@ import {
   ShieldCheck, 
   Settings, 
   LogOut, 
-  User, 
   Lock, 
   Mail, 
   AlertCircle, 
   CheckCircle2, 
   X, 
   Key, 
-  ExternalLink,
   HardDrive
 } from 'lucide-react'
 import { 

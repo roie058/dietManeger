@@ -12,9 +12,6 @@ import {
   Loader2, 
   Search, 
   ArrowRight,
-  RefreshCw,
-  Eye,
-  Info,
   ShieldAlert
 } from 'lucide-react'
 import { fetchProductByBarcode, searchProductsByName, SAMPLE_BARCODES } from '../utils/barcodeService'

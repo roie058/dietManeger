@@ -6,13 +6,7 @@ import {
   Calendar, 
   Scale, 
   Flame, 
-  Droplets, 
-  Award, 
-  ArrowRight, 
-  CheckCircle2, 
-  ChevronRight,
-  Plus,
-  Zap,
+  Zap, 
   Target
 } from 'lucide-react'
 import { formatDisplayDate, addDays, getTodayDateString } from '../utils/dateUtils'

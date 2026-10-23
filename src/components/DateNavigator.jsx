@@ -4,8 +4,6 @@ import {
   ChevronRight, 
   Calendar, 
   RotateCcw, 
-  TrendingUp, 
-  ListFilter,
   BarChart3,
   CalendarDays
 } from 'lucide-react'

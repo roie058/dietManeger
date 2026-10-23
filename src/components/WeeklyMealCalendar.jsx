@@ -9,12 +9,9 @@ import {
   Check, 
   RotateCcw, 
   Utensils, 
-  Flame, 
-  Clock, 
   ChevronRight, 
   X,
-  ChefHat,
-  ArrowRight
+  ChefHat
 } from 'lucide-react'
 import { calculateRecipeNutrition } from '../utils/recipeCalculator'
 import { 

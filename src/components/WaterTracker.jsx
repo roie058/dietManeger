@@ -4,9 +4,6 @@ import {
   Plus, 
   RotateCcw, 
   Sparkles, 
-  CheckCircle, 
-  GlassWater, 
-  Coffee, 
   Award 
 } from 'lucide-react'
 

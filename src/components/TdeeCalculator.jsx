@@ -2,11 +2,8 @@ import React, { useState } from 'react'
 import { 
   Target, 
   Activity, 
-  Dumbbell, 
   Sparkles, 
   Check, 
-  TrendingDown, 
-  TrendingUp, 
   Flame, 
   Droplet 
 } from 'lucide-react'

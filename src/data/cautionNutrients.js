@@ -90,20 +90,3 @@ export const CAUTION_NUTRIENTS = {
     counterMeasure: 'Eat whole fresh fruits where natural sugars are encapsulated in dietary fiber and polyphenols.'
   }
 }
-
-export const LIFESTYLE_HABIT_GUIDELINES = {
-  lateNightEating: {
-    title: 'Circadian Digestive Window',
-    cutoffHour: 21, // 9:00 PM
-    maxLateCalories: 350,
-    desc: 'Eating heavy meals after 9:00 PM delays melatonin release, reduces nocturnal heart rate dip, and causes morning insulin resistance.',
-    tip: 'If hungry before bed, opt for light casein protein (Greek yogurt) or chamomile herbal tea with magnesium.'
-  },
-  sodiumPotassiumRatio: {
-    title: 'Sodium-to-Potassium (Na:K) Ratio',
-    targetRatio: 1.0,
-    warningRatio: 1.25,
-    desc: 'The molar ratio between sodium and potassium is a stronger predictor of cardiovascular health than sodium alone. Optimal is under 1.0 (more potassium than sodium).',
-    tip: 'Pair savory salted meals with potassium-dense dark leafy greens, sweet potatoes, or avocados.'
-  }
-}

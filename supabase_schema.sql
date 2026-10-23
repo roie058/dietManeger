@@ -35,7 +35,14 @@ ON public.nutriflow_user_data
 FOR UPDATE 
 USING (auth.uid() = user_id);
 
--- 6. Trigger to automatically update updated_at timestamp on row modification
+-- 6. Policy: Users can delete their own data
+DROP POLICY IF EXISTS "Users can delete own data" ON public.nutriflow_user_data;
+CREATE POLICY "Users can delete own data" 
+ON public.nutriflow_user_data 
+FOR DELETE 
+USING (auth.uid() = user_id);
+
+-- 7. Trigger to automatically update updated_at timestamp on row modification
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

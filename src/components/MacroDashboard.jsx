@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { 
-  TrendingUp, 
-  Flame 
+  TrendingUp 
 } from 'lucide-react'
 import { COMMON_FOOD_LIBRARY } from '../data/initialData'
 import { MICRONUTRIENTS_DATA } from '../data/vitaminsMinerals'

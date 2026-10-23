@@ -6,10 +6,6 @@ import {
   Trash2, 
   Barcode, 
   Camera, 
-  FileText, 
-  Flame, 
-  CheckCircle2, 
-  Sparkles, 
   Filter,
   Check
 } from 'lucide-react'

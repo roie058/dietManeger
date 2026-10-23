@@ -8,13 +8,8 @@ import {
   Info, 
   ChevronDown, 
   ChevronUp, 
-  Zap, 
-  CheckCircle2, 
-  Activity,
-  Flame,
-  ArrowRight
+  Zap
 } from 'lucide-react'
-import { CAUTION_NUTRIENTS, LIFESTYLE_HABIT_GUIDELINES } from '../data/cautionNutrients'
 import { computeCautionTotals } from '../utils/calculators'
 
 export default function HealthCautionTracker({ 

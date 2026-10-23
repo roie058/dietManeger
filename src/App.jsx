@@ -9,7 +9,7 @@ import FoodDatabaseView from './components/FoodDatabaseView'
 import ShoppingList from './components/ShoppingList'
 import DateNavigator from './components/DateNavigator'
 import HistoricalAnalytics from './components/HistoricalAnalytics'
-import { getTodayDateString, generateInitialHistory, addDays, formatDisplayDate } from './utils/dateUtils'
+import { getTodayDateString, generateInitialHistory } from './utils/dateUtils'
 
 import { 
   DEFAULT_USER_PROFILE, 

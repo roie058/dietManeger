@@ -5,13 +5,10 @@ import {
   Dumbbell, 
   Plus, 
   Trash2, 
-  Timer, 
   Zap, 
   Sparkles, 
-  TrendingUp, 
   Activity, 
   HeartPulse,
-  CheckCircle2,
   X
 } from 'lucide-react'
 

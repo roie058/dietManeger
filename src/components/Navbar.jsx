@@ -10,7 +10,6 @@ import {
   Calendar,
   Database,
   Smartphone,
-  Download,
   Cloud,
   CheckCircle2
 } from 'lucide-react'

@@ -1,4 +1,4 @@
-import { getSupabase, isSupabaseConfigured } from './supabaseClient'
+import { getSupabase } from './supabaseClient'
 import { getAllNutriflowData, restoreAllNutriflowData, saveStorage, loadStorage } from './storage'
 
 const LAST_SYNC_KEY = 'nutriflow_last_synced'

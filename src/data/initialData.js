@@ -360,27 +360,6 @@ export const DEFAULT_SHOPPING_LIST = [
   { id: 's10', text: 'Extra virgin olive oil', category: 'Oils & Condiments', completed: false }
 ]
 
-export const DEFAULT_MEAL_PREP_TEMPLATES = [
-  {
-    day: 'Monday - Wednesday',
-    batchTitle: 'Lean High-Protein Power Prep',
-    servings: '6 meals',
-    prepTime: '45 mins',
-    macroBreakdown: '520 kcal | 48g Protein | 45g Carbs | 14g Fat',
-    recipe: 'Baked paprika-garlic chicken breast, roasted sweet potato wedges, and steamed garlic broccoli.',
-    tips: 'Cool completely before sealing in airtight glass containers. Keeps fresh for 4 days.'
-  },
-  {
-    day: 'Thursday - Friday',
-    batchTitle: 'Omega-3 Salmon & Quinoa Harvest',
-    servings: '4 meals',
-    prepTime: '30 mins',
-    macroBreakdown: '560 kcal | 42g Protein | 40g Carbs | 22g Fat',
-    recipe: 'Pan-seared Atlantic salmon fillets with lemon-dill quinoa, roasted asparagus, and cherry tomatoes.',
-    tips: 'Store salmon with a wedge of lemon. Warm gently or enjoy chilled over greens.'
-  }
-]
-
 export const DEFAULT_RECIPES = [
   {
     id: 'r1',
