@@ -39,8 +39,12 @@ A modern, science-based diet and healthy lifestyle application built with React,
    - Real-time checked-off counter
    - Fast item addition and cleanup
 
-7. **💾 Local Storage Persistence**
-   - All logs, biometric profile settings, and grocery items are automatically saved in the browser.
+7. **☁️ Permanent Cloud Storage & Multi-Device Sync (Supabase)**
+   - **Zero Data Loss**: Immune to accidental browser clearing, cache wipes, or private browsing closures.
+   - **Browser Storage Persistence API**: Automatically requests `navigator.storage.persist()` on app startup to lock local data against storage eviction.
+   - **Cross-Device Cloud Sync**: Backs up biometric profile, daily history, food library, recipes, and body composition to a secure Supabase PostgreSQL database using Row-Level Security (RLS).
+   - **Debounced Auto-Sync**: Automatically pushes changes to the cloud in the background.
+   - **Manual JSON Backup & Restore**: 1-click export to download all data as `.json` file to local disk anytime, with instant restore.
 
 8. **📱 Progressive Web App (PWA) & Offline Support**
    - Standalone mobile app installation for iOS and Android

@@ -10,10 +10,18 @@ import {
   Calendar,
   Database,
   Smartphone,
-  Download
+  Download,
+  Cloud,
+  CheckCircle2
 } from 'lucide-react'
 
-export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
+export default function Navbar({ 
+  activeTab, 
+  setActiveTab, 
+  streakCount = 5,
+  onOpenCloudSync,
+  isCloudUser = false
+}) {
   const [canInstall, setCanInstall] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isStandalone, setIsStandalone] = useState(false)
@@ -165,6 +173,29 @@ export default function Navbar({ activeTab, setActiveTab, streakCount = 5 }) {
 
         {/* Date & Streak Indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onOpenCloudSync && (
+            <button
+              type="button"
+              onClick={onOpenCloudSync}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: '0.8rem',
+                padding: '6px 12px',
+                color: isCloudUser ? '#34d399' : 'var(--text-muted)',
+                border: isCloudUser ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isCloudUser ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                cursor: 'pointer'
+              }}
+              title="Cloud Backup & Storage Settings"
+            >
+              {isCloudUser ? <CheckCircle2 size={15} color="#34d399" /> : <Cloud size={15} />}
+              <span>{isCloudUser ? 'Cloud Synced' : 'Backup & Sync'}</span>
+            </button>
+          )}
+
           {canInstall && !isStandalone && (
             <button
               type="button"

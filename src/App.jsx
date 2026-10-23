@@ -19,10 +19,19 @@ import {
   DEFAULT_RECIPES
 } from './data/initialData'
 import { RotateCcw, X, CheckCircle2 } from 'lucide-react'
-import { loadStorage, saveStorage } from './utils/storage'
+import { loadStorage, saveStorage, requestPersistentStorage } from './utils/storage'
+import CloudSyncModal from './components/CloudSyncModal'
+import { 
+  getCurrentUser, 
+  onAuthStateChange, 
+  uploadLocalDataToCloud, 
+  isAutoSyncEnabled 
+} from './utils/cloudSync'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false)
+  const [cloudUser, setCloudUser] = useState(null)
 
   // Toast Notification state
   const [undoToast, setUndoToast] = useState(null)
@@ -125,6 +134,43 @@ export default function App() {
   useEffect(() => {
     saveStorage('nutriflow_recipes', recipes)
   }, [recipes])
+
+  // Mount effect: request browser persistent storage and initialize cloud auth listener
+  useEffect(() => {
+    requestPersistentStorage()
+
+    getCurrentUser().then(user => setCloudUser(user))
+    const unsubscribe = onAuthStateChange((event, sessionUser) => {
+      setCloudUser(sessionUser)
+    })
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }, [])
+
+  // Background auto-sync to cloud when data changes (debounced by 3.5s)
+  useEffect(() => {
+    if (!cloudUser || !isAutoSyncEnabled()) return
+
+    const timer = setTimeout(() => {
+      uploadLocalDataToCloud().catch(err => {
+        console.warn('[NutriFlow] Auto-sync notice:', err.message)
+      })
+    }, 3500)
+
+    return () => clearTimeout(timer)
+  }, [profile, dailyHistory, shoppingItems, foodLibrary, recipes, isNetCalorieMode, streakCount, cloudUser])
+
+  // Reload all state if cloud sync or file import restores data
+  const handleReloadAllState = () => {
+    setProfile(loadStorage('nutriflow_profile', DEFAULT_USER_PROFILE))
+    setDailyHistory(loadStorage('nutriflow_history', dailyHistory))
+    setShoppingItems(loadStorage('nutriflow_shopping', DEFAULT_SHOPPING_LIST))
+    setFoodLibrary(loadStorage('nutriflow_food_library', COMMON_FOOD_LIBRARY))
+    setRecipes(loadStorage('nutriflow_recipes', DEFAULT_RECIPES))
+    setIsNetCalorieMode(loadStorage('nutriflow_net_mode', false))
+    setStreakCount(loadStorage('nutriflow_streak', 6))
+  }
 
   // --- Actions with Undo Support ---
   const handleAddMeal = (newMeal) => {
@@ -366,6 +412,8 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         streakCount={streakCount} 
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+        isCloudUser={Boolean(cloudUser)}
       />
 
       <main 
@@ -534,6 +582,13 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Cloud Sync & Backup Modal */}
+      <CloudSyncModal 
+        isOpen={isCloudSyncOpen}
+        onClose={() => setIsCloudSyncOpen(false)}
+        onDataRestored={handleReloadAllState}
+      />
     </div>
   )
 }
