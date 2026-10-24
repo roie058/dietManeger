@@ -2,13 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { 
   Flame, 
   Target, 
-  Pill, 
-  Droplets, 
   ChefHat, 
-  ShoppingCart, 
   Sparkles,
   Calendar,
-  Database,
   Smartphone,
   Cloud,
   CheckCircle2,

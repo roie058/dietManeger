@@ -48,6 +48,7 @@ export default function HistoricalAnalytics({
         date: dateKey,
         displayDate: formatDisplayDate(dateKey),
         shortDate: new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        dayOfMonth: new Date(dateKey + 'T00:00:00').getDate().toString(),
         weekday: new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'narrow' }),
         calories: totalCals,
         protein: totalProtein,
@@ -364,11 +365,19 @@ export default function HistoricalAnalytics({
                 <div style={{
                   position: 'absolute',
                   bottom: '6px',
-                  fontSize: timeRange === 30 ? '0.62rem' : '0.72rem',
+                  fontSize: timeRange >= 14 ? '0.62rem' : '0.72rem',
                   color: isSelected ? '#fff' : 'var(--text-dim)',
-                  fontWeight: isSelected ? '700' : '500'
+                  fontWeight: isSelected ? '700' : '500',
+                  textAlign: 'center',
+                  lineHeight: '1',
+                  whiteSpace: 'nowrap'
                 }}>
-                  {timeRange === 30 ? day.shortDate.split(' ')[1] : day.shortDate}
+                  {timeRange >= 14 ? day.dayOfMonth : (
+                    <>
+                      <span className="desktop-only-inline">{day.shortDate}</span>
+                      <span className="mobile-only-inline">{day.dayOfMonth}</span>
+                    </>
+                  )}
                 </div>
               </div>
             )

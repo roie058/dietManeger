@@ -85,26 +85,25 @@ export default function PwaInstallBanner() {
   return (
     <>
       <div 
-        className="animate-fade-in"
+        className="animate-fade-in pwa-install-banner"
         style={{
           background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 95, 70, 0.25) 100%)',
           border: '1px solid rgba(16, 185, 129, 0.35)',
-          borderRadius: '16px',
-          padding: '12px 18px',
-          marginBottom: '20px',
+          borderRadius: '14px',
+          padding: '8px 12px',
+          marginBottom: '16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
+          gap: '8px',
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
+            width: '34px',
+            height: '34px',
+            borderRadius: '10px',
             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             display: 'flex',
             alignItems: 'center',
@@ -113,24 +112,24 @@ export default function PwaInstallBanner() {
             flexShrink: 0,
             boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
           }}>
-            <Smartphone size={22} />
+            <Smartphone size={18} />
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: '700', fontSize: '0.94rem', color: '#ffffff' }}>
-                Install NutriFlow App
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
+              <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Install NutriFlow
               </span>
-              <span className="badge badge-emerald" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
-                Offline Ready
+              <span className="badge badge-emerald desktop-only-inline" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                Offline
               </span>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-              Enjoy full-screen mobile experience, instant offline access, and fast logging directly from your home screen.
+            <p className="desktop-only" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+              Enjoy full-screen mobile experience, instant offline access, and fast logging.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button
             type="button"
             onClick={handleInstallClick}
@@ -138,14 +137,15 @@ export default function PwaInstallBanner() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '7px 14px',
+              gap: '5px',
+              padding: '6px 10px',
               fontWeight: '700',
-              fontSize: '0.84rem'
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap'
             }}
           >
-            <Download size={15} />
-            <span>Install Now</span>
+            <Download size={13} />
+            <span>Install</span>
           </button>
           <button
             type="button"
@@ -156,7 +156,7 @@ export default function PwaInstallBanner() {
               border: 'none',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              padding: '6px',
+              padding: '5px',
               borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
@@ -164,7 +164,7 @@ export default function PwaInstallBanner() {
               transition: 'var(--transition)'
             }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
       </div>

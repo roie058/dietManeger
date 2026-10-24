@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { 
   Plus, 
-  X, 
   Barcode, 
   FileText, 
   Camera, 
@@ -103,7 +102,7 @@ export default function MobileQuickAddFab({
           transform: isOpen ? 'rotate(45deg)' : 'none'
         }}
       >
-        <Plus size={28} strokeWidth={2.5} />
+        <Plus size={24} strokeWidth={2.5} />
       </button>
     </div>
   )

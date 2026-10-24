@@ -231,11 +231,11 @@ export default function RecipeBuilderModal({
 
           {/* Form Content */}
           <div className="modal-body">
-            <form id="recipe-builder-form" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <form id="recipe-builder-form" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '18px', paddingBottom: '40px' }}>
 
             {/* General Info */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-              <div className="input-group" style={{ gridColumn: 'span 2' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '12px' }}>
+              <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                 <label className="input-label">Recipe Title *</label>
                 <input
                   type="text"
@@ -325,23 +325,23 @@ export default function RecipeBuilderModal({
                 </button>
               </div>
 
-              {/* Add Ingredient Bar */}
+              {/* Add Ingredient Bar - Responsive and wraps cleanly on mobile */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(220px, 2fr) minmax(110px, 1fr) auto',
+                display: 'flex',
+                flexWrap: 'wrap',
                 gap: '10px',
                 background: 'rgba(0, 0, 0, 0.25)',
                 padding: '12px',
                 borderRadius: 'var(--radius-sm)',
-                alignItems: 'end'
+                alignItems: 'flex-end'
               }}>
-                <div className="input-group">
+                <div className="input-group" style={{ flex: '2 1 180px', minWidth: '150px' }}>
                   <label className="input-label" style={{ fontSize: '0.74rem' }}>Select Ingredient from Database</label>
                   <select
                     value={selectedFoodId}
                     onChange={(e) => setSelectedFoodId(e.target.value)}
                     className="select-field"
-                    style={{ fontSize: '0.88rem' }}
+                    style={{ fontSize: '0.88rem', width: '100%' }}
                   >
                     {filteredLibrary.map(food => (
                       <option key={food.id} value={food.id}>
@@ -351,8 +351,8 @@ export default function RecipeBuilderModal({
                   </select>
                 </div>
 
-                <div className="input-group">
-                  <label className="input-label" style={{ fontSize: '0.74rem' }}>Quantity in Grams (g)</label>
+                <div className="input-group" style={{ flex: '1 1 80px', minWidth: '70px', maxWidth: '120px' }}>
+                  <label className="input-label" style={{ fontSize: '0.74rem' }}>Grams (g)</label>
                   <input
                     type="number"
                     min="1"
@@ -360,7 +360,7 @@ export default function RecipeBuilderModal({
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
                     className="input-field"
-                    style={{ fontSize: '0.88rem' }}
+                    style={{ fontSize: '0.88rem', width: '100%' }}
                   />
                 </div>
 
@@ -368,7 +368,7 @@ export default function RecipeBuilderModal({
                   type="button"
                   onClick={handleAddIngredient}
                   className="btn btn-primary"
-                  style={{ height: '42px', whiteSpace: 'nowrap' }}
+                  style={{ height: '42px', flex: '1 1 130px', minWidth: '120px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <Plus size={16} />
                   <span>Add Ingredient</span>
@@ -581,8 +581,8 @@ export default function RecipeBuilderModal({
               </div>
             </div>
 
-            {/* Instructions & Storage Tips */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            {/* Instructions & Storage Tips - Responsive auto-fit */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '14px' }}>
               <div className="input-group">
                 <label className="input-label">Cooking Instructions & Steps</label>
                 <textarea
@@ -609,27 +609,26 @@ export default function RecipeBuilderModal({
             </form>
           </div>
 
-          {/* Fixed Modal Footer */}
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-secondary" style={{ minWidth: '100px' }}>
+          {/* Fixed Modal Footer - Clean side-by-side buttons */}
+          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="btn btn-secondary" 
+              style={{ flex: '0 0 auto', minWidth: '90px', height: '44px', minHeight: '44px', maxHeight: '44px' }}
+            >
               Cancel
             </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="badge badge-emerald" style={{ padding: '6px 12px', fontSize: '0.82rem' }}>
-                {ingredients.length} {ingredients.length === 1 ? 'ingredient' : 'ingredients'} • {nutrition.perServing.calories} kcal / serving ({servings} {servings === 1 ? 'portion' : 'portions'})
-              </span>
-            </div>
 
             <button
               type="submit"
               form="recipe-builder-form"
               disabled={ingredients.length === 0 || !title.trim()}
               className="btn btn-primary"
-              style={{ minWidth: '200px' }}
+              style={{ flex: '1 1 auto', height: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               <Check size={16} />
-              <span>Save Recipe to Library</span>
+              <span>Save Recipe</span>
             </button>
           </div>
 

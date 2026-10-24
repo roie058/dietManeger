@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { 
   TrendingUp,
   Droplets,
@@ -55,6 +55,23 @@ export default function MacroDashboard({
   // Progressive Disclosure: Insights accordion & active pill
   const [isInsightsExpanded, setIsInsightsExpanded] = useState(false)
   const [activeInsight, setActiveInsight] = useState('micros') // 'micros' | 'cautions' | 'gaps' | 'workouts'
+
+  // Sticky Mini-Hero Bar Ref & Scroll state
+  const heroRef = useRef(null)
+  const [showStickyMiniBar, setShowStickyMiniBar] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!heroRef.current) return
+      const rect = heroRef.current.getBoundingClientRect()
+      // When the bottom of the hero card has scrolled past top of screen (with a little offset)
+      setShowStickyMiniBar(rect.bottom < 60)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Macro Totals
   const totals = useMemo(() => aggregateMacroTotals(mealLogs), [mealLogs])
@@ -130,16 +147,86 @@ export default function MacroDashboard({
       {/* PWA Mobile & Desktop Install Prompt */}
       <PwaInstallBanner />
 
+      {/* Sticky Mini-Hero Progress Bar (Visible when main hero is scrolled offscreen) */}
+      {showStickyMiniBar && (
+        <aside 
+          className="sticky-mini-bar" 
+          aria-label="Quick daily nutrition progress"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <span className="badge badge-emerald" style={{ fontSize: '0.74rem' }}>
+              {selectedDate ? formatDisplayDate(selectedDate) : 'Today'}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="tabular-nums" style={{ fontSize: '1rem', fontWeight: '800', color: '#fff' }}>
+                {effectiveCalories} / {targetCal} kcal
+              </span>
+              <span className="tabular-nums" style={{ fontSize: '0.78rem', color: 'var(--primary-light)', fontWeight: '700' }}>
+                ({calPercent}%)
+              </span>
+            </div>
+            <div className="progress-container" style={{ width: '90px', height: '6px' }}>
+              <div 
+                className="progress-bar"
+                style={{ 
+                  width: `${calPercent}%`, 
+                  background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)' 
+                }} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            {/* Quick Macro Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.76rem' }}>
+              <span style={{ color: 'var(--accent-blue)', fontWeight: '700' }}>P: {Math.round(totals.protein)}g</span>
+              <span style={{ color: 'var(--text-muted)' }}>•</span>
+              <span style={{ color: 'var(--accent-yellow)', fontWeight: '700' }}>C: {Math.round(totals.carbs)}g</span>
+              <span style={{ color: 'var(--text-muted)' }}>•</span>
+              <span style={{ color: 'var(--accent-red)', fontWeight: '700' }}>F: {Math.round(totals.fat)}g</span>
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleQuickAddWater}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Quick add 250ml water"
+              >
+                <Droplets size={12} color="var(--accent-blue)" />
+                <span>+250ml</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openCustomModal('Snack')}
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <Plus size={13} />
+                <span>Log Food</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
       {/* Primary Hero: Daily Nutrition Budget & Macro Allocation */}
-      <div className="glass-panel" style={{
-        padding: '24px 28px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '24px',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(18, 26, 41, 0.85) 100%)',
-        border: '1px solid rgba(16, 185, 129, 0.2)'
-      }}>
+      <div 
+        ref={heroRef}
+        className="glass-panel" 
+        style={{
+          padding: '24px 28px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '24px',
+          alignItems: 'center',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(18, 26, 41, 0.85) 100%)',
+          border: '1px solid rgba(16, 185, 129, 0.2)'
+        }}
+      >
         {/* Main Calorie Summary */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
@@ -331,8 +418,8 @@ export default function MacroDashboard({
       {/* Main Interactive Grid: Today's Food Log & Quick Food Picker */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-        gap: '22px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+        gap: '20px',
         alignItems: 'start'
       }}>
         {/* Left: Today's Food Log with Guided Empty State */}

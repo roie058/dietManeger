@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { 
   ChefHat, 
   Clock, 
@@ -32,7 +32,7 @@ export default function MealPlanner({
 }) {
   const [plannerTab, setPlannerTab] = useState(forcedView || 'calendar')
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (forcedView) {
       setPlannerTab(forcedView)
     }
@@ -215,22 +215,34 @@ export default function MealPlanner({
       </div>
 
       {/* Filter Tabs */}
-      <div className="glass-panel" style={{ padding: '12px 20px', display: 'flex', gap: '8px', overflowX: 'auto' }}>
+      <div 
+        className="chip-scroll-container" 
+        style={{ 
+          padding: '10px 14px', 
+          display: 'flex', 
+          gap: '8px', 
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
             style={{
-              padding: '8px 18px',
+              padding: '6px 14px',
               borderRadius: '20px',
-              fontSize: '0.86rem',
+              fontSize: '0.84rem',
               fontWeight: activeCategory === cat ? '700' : '500',
               border: activeCategory === cat ? '1px solid var(--primary)' : '1px solid var(--border-color)',
               background: activeCategory === cat ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)',
               color: activeCategory === cat ? 'var(--primary-light)' : 'var(--text-muted)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'var(--transition)'
+              transition: 'var(--transition)',
+              flexShrink: 0
             }}
           >
             {cat}
@@ -258,7 +270,7 @@ export default function MealPlanner({
           </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '20px' }}>
           {filteredRecipes.map(recipe => {
             const calc = calculateRecipeNutrition(recipe, foodLibrary)
             const isExpanded = !!expandedRecipeIds[recipe.id]
@@ -397,15 +409,18 @@ export default function MealPlanner({
                               style={{
                                 display: 'flex',
                                 justifyContent: 'space-between',
+                                alignItems: 'baseline',
+                                flexWrap: 'wrap',
+                                gap: '4px',
                                 fontSize: '0.82rem',
-                                padding: '4px 0',
+                                padding: '5px 0',
                                 borderBottom: idx < calc.ingredientDetails.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none'
                               }}
                             >
-                              <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>
+                              <span style={{ fontWeight: '600', color: 'var(--text-main)', flex: '1 1 160px', minWidth: 0 }}>
                                 • {ing.amountGrams}g {ing.foodName}
                               </span>
-                              <span style={{ color: 'var(--text-muted)' }}>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                                 {ing.nutrition.calories} kcal (P:{ing.nutrition.protein}g)
                               </span>
                             </div>

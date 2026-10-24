@@ -140,20 +140,27 @@ export default function MicronutrientSection({
       </div>
 
       {/* Filter Category Pills */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        flexWrap: 'wrap',
-        marginBottom: '20px',
-        paddingBottom: '16px',
-        borderBottom: '1px solid var(--border-color)'
-      }}>
+      <div 
+        className="chip-scroll-container"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          marginBottom: '20px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid var(--border-color)',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+      >
         {['All', 'Vitamins', 'Minerals', 'Electrolytes', 'Fatty Acids'].map(category => (
           <button
             key={category}
             onClick={() => setMicroCategoryFilter(category)}
             className={`btn btn-sm ${microCategoryFilter === category ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+            style={{ fontSize: '0.8rem', padding: '6px 14px', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             {category}
           </button>

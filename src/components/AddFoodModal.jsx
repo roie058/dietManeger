@@ -1174,6 +1174,68 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                     />
                   </div>
                 </div>
+
+                {/* Real-time Macro Math Helper & One-Click Auto-Calculate */}
+                {(() => {
+                  const p = parseFloat(foodData.protein) || 0
+                  const c = parseFloat(foodData.carbs) || 0
+                  const f = parseFloat(foodData.fat) || 0
+                  const hasAnyMacro = p > 0 || c > 0 || f > 0
+                  const computedCals = Math.round((p * 4) + (c * 4) + (f * 9))
+                  const enteredCals = parseFloat(foodData.calories) || 0
+
+                  if (!hasAnyMacro) return null
+
+                  const isCalorieEmpty = !foodData.calories || foodData.calories === '' || enteredCals === 0
+                  const diff = Math.abs(enteredCals - computedCals)
+                  const hasSignificantDivergence = !isCalorieEmpty && computedCals > 0 && (diff / computedCals > 0.25)
+
+                  return (
+                    <div style={{
+                      marginTop: '4px',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: hasSignificantDivergence ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.08)',
+                      border: hasSignificantDivergence ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      fontSize: '0.78rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Sparkles size={13} color={hasSignificantDivergence ? 'var(--accent-yellow)' : 'var(--primary-light)'} />
+                        <span style={{ color: hasSignificantDivergence ? 'var(--accent-yellow)' : 'var(--text-muted)' }}>
+                          {isCalorieEmpty ? (
+                            <>Estimated from macros (4P + 4C + 9F): <strong className="tabular-nums" style={{ color: '#fff' }}>~{computedCals} kcal</strong></>
+                          ) : hasSignificantDivergence ? (
+                            <>Entered {enteredCals} kcal differs from calculated macro energy (~{computedCals} kcal)</>
+                          ) : (
+                            <>Macros match entered energy (~{computedCals} kcal)</>
+                          )}
+                        </span>
+                      </div>
+
+                      {(isCalorieEmpty || hasSignificantDivergence) && (
+                        <button
+                          type="button"
+                          onClick={() => setFoodData(prev => ({ ...prev, calories: String(computedCals) }))}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '3px 8px',
+                            minHeight: '26px',
+                            borderColor: 'rgba(16, 185, 129, 0.4)',
+                            color: 'var(--primary-light)'
+                          }}
+                        >
+                          Use ~{computedCals} kcal
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Collapsible Micronutrients Section */}

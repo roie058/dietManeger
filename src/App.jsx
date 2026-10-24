@@ -492,7 +492,6 @@ export default function App() {
               onChangeViewMode={(mode) => {
                 if (mode === 'analytics') setActiveTab('progress')
               }}
-              streakCount={streakCount}
             />
 
             <MacroDashboard 

@@ -51,6 +51,7 @@ export default function WeeklyMealCalendar({
   const [isShoppingPreviewOpen, setIsShoppingPreviewOpen] = useState(false)
   const [selectedShoppingItems, setSelectedShoppingItems] = useState({})
   const [actionNotice, setActionNotice] = useState(null)
+  const [activeDayFilter, setActiveDayFilter] = useState('All')
 
   // Save to local storage
   useEffect(() => {
@@ -503,13 +504,45 @@ export default function WeeklyMealCalendar({
         </div>
       </div>
 
+      {/* Responsive Day Filter Selector (Especially helpful on mobile) */}
+      <div 
+        className="chip-scroll-container"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          paddingBottom: '4px',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        {['All', ...DAYS_OF_WEEK].map(d => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => setActiveDayFilter(d)}
+            className={`btn btn-sm ${activeDayFilter === d ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '0.82rem',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+          >
+            {d}
+          </button>
+        ))}
+      </div>
+
       {/* 7-Day Board Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
         gap: '16px'
       }}>
-        {DAYS_OF_WEEK.map(day => {
+        {(activeDayFilter === 'All' ? DAYS_OF_WEEK : [activeDayFilter]).map(day => {
           const dayMeals = weeklyPlan[day] || {}
           let dayCal = 0
           let dayPro = 0

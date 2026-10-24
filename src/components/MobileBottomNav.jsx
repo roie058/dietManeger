@@ -6,13 +6,10 @@ import {
   Droplets, 
   LayoutGrid, 
   Pill, 
-  Database, 
-  ShoppingCart, 
   Cloud, 
   Smartphone, 
   X, 
   CheckCircle2,
-  Calendar,
   Sparkles,
   ChevronRight,
   TrendingUp

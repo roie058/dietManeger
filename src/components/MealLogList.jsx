@@ -31,22 +31,24 @@ export default function MealLogList({
 
   return (
     <div className="glass-panel" style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Utensils size={18} color="var(--primary-light)" />
-          <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Today's Food Log</h3>
-          <span className="badge badge-emerald">{mealLogs.length} logged</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+          <Utensils size={18} color="var(--primary-light)" style={{ flexShrink: 0 }} />
+          <h3 style={{ fontSize: '1.18rem', fontWeight: '700', whiteSpace: 'nowrap' }}>Today's Food Log</h3>
+          <span className="badge badge-emerald" style={{ flexShrink: 0 }}>{mealLogs.length} logged</span>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap' }}>
           {onOpenScanModal && (
             <button 
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={onOpenScanModal}
               title="Scan food barcode or photo nutrition label"
+              style={{ fontSize: '0.8rem', padding: '6px 10px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
               <Barcode size={14} color="var(--accent-blue)" />
-              <span>Scan Barcode / Label</span>
+              <span className="desktop-only-inline">Scan Barcode / Label</span>
+              <span className="mobile-only-inline">Scan</span>
             </button>
           )}
           {onOpenCustomModal && (
@@ -54,8 +56,11 @@ export default function MealLogList({
               type="button"
               className="btn btn-primary btn-sm"
               onClick={() => onOpenCustomModal(suggestedMeal)}
+              style={{ fontSize: '0.8rem', padding: '6px 12px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
-              <Plus size={15} /> Log Custom Food
+              <Plus size={15} /> 
+              <span className="desktop-only-inline">Log Custom Food</span>
+              <span className="mobile-only-inline">Log Food</span>
             </button>
           )}
         </div>
@@ -117,7 +122,16 @@ export default function MealLogList({
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div 
+          className={mealLogs.length > 3 ? 'custom-scroll-container' : ''}
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '12px',
+            maxHeight: mealLogs.length > 3 ? '520px' : 'none',
+            paddingRight: mealLogs.length > 3 ? '4px' : '0'
+          }}
+        >
           {mealLogs.map((meal) => {
             const isExpanded = !!expandedMealIds[meal.id]
             const mealMicros = meal.micros || {}
