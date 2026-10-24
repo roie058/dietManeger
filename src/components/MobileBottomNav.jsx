@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Calendar,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  TrendingUp
 } from 'lucide-react'
 
 export default function MobileBottomNav({
@@ -24,26 +25,27 @@ export default function MobileBottomNav({
   isCloudUser = false,
   canInstall = false,
   onInstall,
-  streakCount = 6
+  streakCount = 6,
+  onOpenOnboarding
 }) {
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false)
 
-  // Primary navigation items docked in thumb zone
+  // Primary navigation items docked in thumb zone (4 Core Pillars)
   const primaryTabs = [
-    { id: 'dashboard', label: 'Macros', icon: Flame },
-    { id: 'tdee', label: 'Goals', icon: Target },
-    { id: 'mealprep', label: 'Meal Prep', icon: ChefHat },
-    { id: 'water', label: 'Water', icon: Droplets }
+    { id: 'today', label: 'Today', icon: Flame, aliases: ['today', 'dashboard'] },
+    { id: 'plan', label: 'Plan', icon: ChefHat, aliases: ['plan', 'mealprep', 'shopping', 'foodlibrary'] },
+    { id: 'progress', label: 'Progress', icon: TrendingUp, aliases: ['progress'] },
+    { id: 'profile', label: 'Profile', icon: Target, aliases: ['profile', 'tdee'] }
   ]
 
   // Secondary items accessed via the 'More' sheet
   const moreItems = [
     { 
-      id: 'foodlibrary', 
-      label: 'Food Database', 
-      desc: 'Library of nutrition facts & custom foods', 
-      icon: Database,
-      color: '#38bdf8'
+      id: 'water', 
+      label: 'Hydration Tracker', 
+      desc: 'Dedicated water intake, glass log & daily quota', 
+      icon: Droplets,
+      color: '#06b6d4'
     },
     { 
       id: 'vitamins', 
@@ -51,17 +53,10 @@ export default function MobileBottomNav({
       desc: 'Track 10 essential micronutrients & RDA', 
       icon: Pill,
       color: '#a855f7'
-    },
-    { 
-      id: 'shopping', 
-      label: 'Shopping List', 
-      desc: 'Aisles, check-offs & grocery planning', 
-      icon: ShoppingCart,
-      color: '#fbbf24'
     }
   ]
 
-  const isMoreActive = ['foodlibrary', 'vitamins', 'shopping'].includes(activeTab)
+  const isMoreActive = ['water', 'vitamins'].includes(activeTab)
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId)
@@ -84,7 +79,7 @@ export default function MobileBottomNav({
       >
         {primaryTabs.map((tab) => {
           const Icon = tab.icon
-          const isActive = activeTab === tab.id
+          const isActive = activeTab === tab.id || (tab.aliases && tab.aliases.includes(activeTab))
           return (
             <button
               key={tab.id}
@@ -229,8 +224,39 @@ export default function MobileBottomNav({
               })}
             </div>
 
-            {/* Quick Actions (Cloud & PWA) */}
+            {/* Quick Actions (Onboarding, Cloud & PWA) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+              {onOpenOnboarding && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreSheetOpen(false)
+                    onOpenOnboarding()
+                  }}
+                  className="btn btn-secondary"
+                  style={{
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    background: 'rgba(16, 185, 129, 0.08)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Sparkles size={18} color="var(--primary-light)" />
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '0.86rem', fontWeight: '700', color: 'var(--primary-light)' }}>
+                        Metabolic Setup Wizard
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        Recalibrate your daily calories, macros & TDEE
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} color="var(--text-dim)" />
+                </button>
+              )}
+
               {onOpenCloudSync && (
                 <button
                   type="button"

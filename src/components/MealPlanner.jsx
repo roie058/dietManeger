@@ -27,9 +27,16 @@ export default function MealPlanner({
   onAddIngredientsToShoppingList,
   onLogMeal,
   onLogBatchMeals,
-  targetCalories = 2350
+  targetCalories = 2350,
+  forcedView
 }) {
-  const [plannerTab, setPlannerTab] = useState('calendar') // 'calendar' | 'recipes'
+  const [plannerTab, setPlannerTab] = useState(forcedView || 'calendar')
+
+  React.useEffect(() => {
+    if (forcedView) {
+      setPlannerTab(forcedView)
+    }
+  }, [forcedView])
   const [activeCategory, setActiveCategory] = useState('All')
   const [expandedRecipeIds, setExpandedRecipeIds] = useState({ r1: true }) // expand first by default
   const [isBuilderOpen, setIsBuilderOpen] = useState(false)

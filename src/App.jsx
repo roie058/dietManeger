@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Navbar from './components/Navbar'
 import MacroDashboard from './components/MacroDashboard'
-import TdeeCalculator from './components/TdeeCalculator'
 import VitaminGuide from './components/VitaminGuide'
 import WaterTracker from './components/WaterTracker'
-import MealPlanner from './components/MealPlanner'
-import FoodDatabaseView from './components/FoodDatabaseView'
-import ShoppingList from './components/ShoppingList'
 import DateNavigator from './components/DateNavigator'
 import HistoricalAnalytics from './components/HistoricalAnalytics'
+import PlanHub from './components/PlanHub'
+import ProfileHub from './components/ProfileHub'
+import OnboardingModal from './components/OnboardingModal'
 import { getTodayDateString, generateInitialHistory } from './utils/dateUtils'
 
 import { 
@@ -32,9 +31,14 @@ import {
 } from './utils/cloudSync'
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('today')
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false)
   const [cloudUser, setCloudUser] = useState(null)
+
+  // Onboarding setup wizard state
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
+    return !loadStorage('nutriflow_onboarded', false)
+  })
 
   // Mobile Quick Add Food Modal state
   const [isMobileAddFoodOpen, setIsMobileAddFoodOpen] = useState(false)
@@ -214,8 +218,17 @@ export default function App() {
     })
   }
 
-  const handleUpdateProfile = (updated) => {
-    setProfile(updated)
+  const handleUpdateProfile = (newProfile) => {
+    setProfile(newProfile)
+    if (newProfile.weight) {
+      setDailyHistory(prev => {
+        const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: newProfile.weight, vitamins: [] }
+        return {
+          ...prev,
+          [selectedDate]: { ...d, weight: newProfile.weight }
+        }
+      })
+    }
   }
 
   const handleToggleVitamin = (id) => {
@@ -427,6 +440,21 @@ export default function App() {
     showUndoToast(`Logged “${savedFood.name}” to today's meals`, () => {})
   }
 
+  const handleCompleteOnboarding = (calibratedProfile) => {
+    handleUpdateProfile(calibratedProfile)
+    saveStorage('nutriflow_onboarded', true)
+    setIsOnboardingOpen(false)
+    showUndoToast('Targets successfully calibrated! Welcome to NutriFlow.', null)
+  }
+
+  // Support both 4 core tabs and legacy tabs
+  const isTodayTab = activeTab === 'today' || activeTab === 'dashboard'
+  const isPlanTab = ['plan', 'mealprep', 'foodlibrary', 'shopping'].includes(activeTab)
+  const isProgressTab = activeTab === 'progress'
+  const isProfileTab = ['profile', 'tdee'].includes(activeTab)
+  const isVitaminsTab = activeTab === 'vitamins'
+  const isWaterTab = activeTab === 'water'
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Accessible Skip to Main Content Link */}
@@ -440,6 +468,7 @@ export default function App() {
         streakCount={streakCount} 
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
         isCloudUser={Boolean(cloudUser)}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
       />
 
       <main 
@@ -454,62 +483,61 @@ export default function App() {
           outline: 'none'
         }}
       >
-        {activeTab === 'dashboard' && (
+        {isTodayTab && (
           <div>
             <DateNavigator 
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
-              viewMode={dashboardViewMode}
-              onChangeViewMode={setDashboardViewMode}
+              viewMode="day"
+              onChangeViewMode={(mode) => {
+                if (mode === 'analytics') setActiveTab('progress')
+              }}
               streakCount={streakCount}
             />
 
-            {dashboardViewMode === 'day' ? (
-              <MacroDashboard 
-                profile={profile}
-                mealLogs={currentDayRecord.mealLogs || []}
-                onAddMeal={handleAddMeal}
-                onDeleteMeal={handleDeleteMeal}
-                dailyVitaminsCovered={currentDayRecord.vitamins || []}
-                onToggleVitamin={handleToggleVitamin}
-                foodLibrary={foodLibrary}
-                onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
-                onNavigateTab={setActiveTab}
-                selectedDate={selectedDate}
-                onOpenAnalytics={() => setDashboardViewMode('analytics')}
-                workouts={currentDayRecord.workouts || []}
-                onAddWorkout={handleAddWorkout}
-                onDeleteWorkout={handleDeleteWorkout}
-                isNetMode={isNetCalorieMode}
-                onToggleNetMode={() => setIsNetCalorieMode(!isNetCalorieMode)}
-              />
-            ) : (
-              <HistoricalAnalytics 
-                dailyHistory={dailyHistory}
-                profile={profile}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                onUpdateWeightForDate={handleUpdateWeightForDate}
-                onSwitchToDayView={() => setDashboardViewMode('day')}
-              />
-            )}
+            <MacroDashboard 
+              profile={profile}
+              mealLogs={currentDayRecord.mealLogs || []}
+              onAddMeal={handleAddMeal}
+              onDeleteMeal={handleDeleteMeal}
+              dailyVitaminsCovered={currentDayRecord.vitamins || []}
+              onToggleVitamin={handleToggleVitamin}
+              foodLibrary={foodLibrary}
+              onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
+              onNavigateTab={setActiveTab}
+              selectedDate={selectedDate}
+              onOpenAnalytics={() => setActiveTab('progress')}
+              workouts={currentDayRecord.workouts || []}
+              onAddWorkout={handleAddWorkout}
+              onDeleteWorkout={handleDeleteWorkout}
+              isNetMode={isNetCalorieMode}
+              onToggleNetMode={() => setIsNetCalorieMode(!isNetCalorieMode)}
+              currentWater={currentDayRecord.water || 0}
+              waterGoal={profile.waterGoal || 3000}
+              onUpdateWater={handleUpdateWater}
+              showUndoToast={showUndoToast}
+            />
           </div>
         )}
 
-        {activeTab === 'tdee' && (
-          <TdeeCalculator 
-            profile={profile}
-            onUpdateProfile={handleUpdateProfile}
-          />
-        )}
-
-        {activeTab === 'mealprep' && (
-          <MealPlanner 
+        {isPlanTab && (
+          <PlanHub 
+            initialSubTab={
+              activeTab === 'shopping' ? 'shopping' : 
+              activeTab === 'foodlibrary' ? 'database' : 
+              activeTab === 'mealprep' ? 'recipes' : 'calendar'
+            }
             recipes={recipes}
             onSaveRecipe={handleSaveRecipe}
             onDeleteRecipe={handleDeleteRecipe}
             foodLibrary={foodLibrary}
             onAddNewFoodToLibrary={handleAddNewFoodToLibrary}
+            onDeleteFoodFromLibrary={handleDeleteFoodFromLibrary}
+            shoppingItems={shoppingItems}
+            onToggleShopping={handleToggleShopping}
+            onAddShoppingItem={handleAddShoppingItem}
+            onDeleteShoppingItem={handleDeleteShoppingItem}
+            onClearCompletedShopping={handleClearCompletedShopping}
             onAddIngredientsToShoppingList={handleAddBatchToShopping}
             onLogMeal={handleAddMeal}
             onLogBatchMeals={handleAddBatchMeals}
@@ -517,39 +545,76 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'foodlibrary' && (
-          <FoodDatabaseView 
-            foodLibrary={foodLibrary}
-            onAddFood={handleAddNewFoodToLibrary}
-            onDeleteFood={handleDeleteFoodFromLibrary}
-            onQuickLogMeal={handleAddMeal}
+        {isProgressTab && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('today')}
+                className="btn btn-secondary btn-sm"
+              >
+                ← Back to Today's Dashboard
+              </button>
+            </div>
+            <HistoricalAnalytics 
+              dailyHistory={dailyHistory}
+              profile={profile}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onUpdateWeightForDate={handleUpdateWeightForDate}
+              onSwitchToDayView={() => setActiveTab('today')}
+            />
+          </div>
+        )}
+
+        {isProfileTab && (
+          <ProfileHub 
+            profile={profile}
+            onUpdateProfile={handleUpdateProfile}
+            streakCount={streakCount}
+            cloudUser={cloudUser}
+            onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+            onRerunOnboarding={() => setIsOnboardingOpen(true)}
+            historyCount={Object.keys(dailyHistory).length}
           />
         )}
 
-        {activeTab === 'vitamins' && (
-          <VitaminGuide 
-            dailyVitaminsCovered={currentDayRecord.vitamins || []}
-            onToggleVitamin={handleToggleVitamin}
-            mealLogs={currentDayRecord.mealLogs || []}
-          />
+        {isVitaminsTab && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('today')}
+                className="btn btn-secondary btn-sm"
+              >
+                ← Back to Today's Dashboard
+              </button>
+            </div>
+            <VitaminGuide 
+              dailyVitaminsCovered={currentDayRecord.vitamins || []}
+              onToggleVitamin={handleToggleVitamin}
+              mealLogs={currentDayRecord.mealLogs || []}
+            />
+          </div>
         )}
 
-        {activeTab === 'water' && (
-          <WaterTracker 
-            currentWater={currentDayRecord.water || 0}
-            waterGoal={profile.waterGoal || 3200}
-            onUpdateWater={handleUpdateWater}
-          />
-        )}
-
-        {activeTab === 'shopping' && (
-          <ShoppingList 
-            shoppingItems={shoppingItems}
-            onToggleItem={handleToggleShopping}
-            onAddItem={handleAddShoppingItem}
-            onDeleteItem={handleDeleteShoppingItem}
-            onClearCompleted={handleClearCompletedShopping}
-          />
+        {isWaterTab && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('today')}
+                className="btn btn-secondary btn-sm"
+              >
+                ← Back to Today's Dashboard
+              </button>
+            </div>
+            <WaterTracker 
+              currentWater={currentDayRecord.water || 0}
+              waterGoal={profile.waterGoal || 3200}
+              onUpdateWater={handleUpdateWater}
+            />
+          </div>
         )}
       </main>
 
@@ -574,7 +639,7 @@ export default function App() {
       </footer>
 
       {/* Mobile Quick-Add Floating Action Button in Thumb Zone */}
-      {activeTab === 'dashboard' && (
+      {isTodayTab && (
         <MobileQuickAddFab 
           onOpenBarcode={() => {
             setMobileAddFoodMode('barcode')
@@ -604,6 +669,18 @@ export default function App() {
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
         isCloudUser={Boolean(cloudUser)}
         streakCount={streakCount}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+      />
+
+      {/* First-Run & Recalibration Onboarding Setup Wizard */}
+      <OnboardingModal 
+        isOpen={isOnboardingOpen}
+        onClose={() => {
+          saveStorage('nutriflow_onboarded', true)
+          setIsOnboardingOpen(false)
+        }}
+        initialProfile={profile}
+        onComplete={handleCompleteOnboarding}
       />
 
       {/* Mobile Quick-Add Food Modal */}

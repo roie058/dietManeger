@@ -18,8 +18,14 @@ import {
 } from '../utils/calculators'
 import BodyComposition from './BodyComposition'
 
-export default function TdeeCalculator({ profile, onUpdateProfile }) {
-  const [activeSection, setActiveSection] = useState('tdee') // 'tdee' | 'bodycomp'
+export default function TdeeCalculator({ profile, onUpdateProfile, initialSection = 'tdee' }) {
+  const [activeSection, setActiveSection] = useState(initialSection)
+
+  React.useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection)
+    }
+  }, [initialSection])
   const [formData, setFormData] = useState({
     name: profile.name || 'Alex',
     gender: profile.gender || 'male',

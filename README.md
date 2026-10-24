@@ -91,10 +91,13 @@ dietManeger/
 │   │   ├── barcodeService.js  # Open Food Facts API barcode resolution
 │   │   └── nutritionOcrParser.js # Optical character recognition text parser for nutrition labels
 │   └── components/
-│       ├── Navbar.jsx         # Responsive desktop/mobile header with active tab and streak
+│       ├── Navbar.jsx         # Responsive desktop/mobile header with 4 core pillars
 │       ├── MobileBottomNav.jsx# Ergonomic fixed bottom navigation bar & "More" drawer sheet
 │       ├── MobileQuickAddFab.jsx # Thumb-zone floating action button for 1-tap food/barcode/water logging
-│       ├── MacroDashboard.jsx # Calorie/macro rings, meal log, quick-add database
+│       ├── OnboardingModal.jsx# 3-step interactive setup wizard for initial metabolic calibration
+│       ├── MacroDashboard.jsx # Calorie/macro rings, meal log, quick water, progressive deep-dive
+│       ├── PlanHub.jsx        # Consolidated hub for Weekly Calendar, Recipes, Shopping List & Food DB
+│       ├── ProfileHub.jsx     # Consolidated hub for Goals, TDEE, Body Composition & Cloud Sync
 │       ├── DateNavigator.jsx  # Multi-day history date switcher & analytics toggle
 │       ├── HistoricalAnalytics.jsx # Multi-day trends, calorie deficit, weight curve & macro split
 │       ├── AddFoodModal.jsx   # 3-in-1 logger: Manual, Camera Barcode & Photo Label OCR

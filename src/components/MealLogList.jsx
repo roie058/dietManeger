@@ -14,13 +14,20 @@ export default function MealLogList({
   mealLogs = [],
   onOpenScanModal,
   onOpenCustomModal,
-  onDeleteMeal
+  onDeleteMeal,
+  remainingCalories,
+  targetCalories = 2300
 }) {
   const [expandedMealIds, setExpandedMealIds] = useState({})
 
   const toggleMealExpanded = (id) => {
     setExpandedMealIds(prev => ({ ...prev, [id]: !prev[id] }))
   }
+
+  // Time-of-day greeting
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const suggestedMeal = hour < 11 ? 'Breakfast' : hour < 16 ? 'Lunch' : 'Dinner'
 
   return (
     <div className="glass-panel" style={{ padding: '24px' }}>
@@ -36,6 +43,7 @@ export default function MealLogList({
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={onOpenScanModal}
+              title="Scan food barcode or photo nutrition label"
             >
               <Barcode size={14} color="var(--accent-blue)" />
               <span>Scan Barcode / Label</span>
@@ -45,7 +53,7 @@ export default function MealLogList({
             <button 
               type="button"
               className="btn btn-primary btn-sm"
-              onClick={onOpenCustomModal}
+              onClick={() => onOpenCustomModal(suggestedMeal)}
             >
               <Plus size={15} /> Log Custom Food
             </button>
@@ -54,9 +62,59 @@ export default function MealLogList({
       </div>
 
       {mealLogs.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-          <p>No meals recorded today yet.</p>
-          <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Select an item from the Quick Library or log custom macros and vitamins!</p>
+        <div style={{
+          textAlign: 'center',
+          padding: '36px 20px',
+          borderRadius: 'var(--radius-md)',
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px dashed rgba(255, 255, 255, 0.12)'
+        }}>
+          <div style={{
+            width: '52px',
+            height: '52px',
+            borderRadius: '50%',
+            background: 'rgba(16, 185, 129, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 14px',
+            color: 'var(--primary-light)'
+          }}>
+            <Sparkles size={24} />
+          </div>
+
+          <h4 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>
+            {greeting}! Ready to fuel your day?
+          </h4>
+          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto 20px' }}>
+            You have <strong className="tabular-nums" style={{ color: 'var(--primary-light)' }}>{remainingCalories ?? targetCalories} kcal</strong> available today. Log your first meal or scan a product to get started.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {onOpenCustomModal && (
+              <button
+                type="button"
+                onClick={() => onOpenCustomModal(suggestedMeal)}
+                className="btn btn-primary"
+                style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={15} />
+                <span>Log {suggestedMeal}</span>
+              </button>
+            )}
+
+            {onOpenScanModal && (
+              <button
+                type="button"
+                onClick={onOpenScanModal}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Barcode size={15} color="var(--accent-blue)" />
+                <span>Scan Barcode</span>
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

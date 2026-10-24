@@ -144,10 +144,42 @@ export default function ShoppingList({ shoppingItems, onToggleItem, onAddItem, o
       {/* Grouped Grocery Checklist */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {Object.keys(grouped).length === 0 ? (
-          <div className="glass-panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-            <ShoppingCart size={36} color="var(--text-dim)" aria-hidden="true" style={{ margin: '0 auto 12px' }} />
-            <p>Your grocery list is empty.</p>
-            <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Add items above or transfer recipes from the Meal Prep tab!</p>
+          <div className="glass-panel" style={{ textAlign: 'center', padding: '44px 24px', color: 'var(--text-muted)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'rgba(251, 191, 36, 0.12)',
+              color: 'var(--accent-yellow)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <ShoppingCart size={26} aria-hidden="true" />
+            </div>
+            <h4 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>
+              Your grocery list is empty!
+            </h4>
+            <p style={{ fontSize: '0.86rem', maxWidth: '420px', margin: '0 auto 20px' }}>
+              Add items manually using the input above, or easily transfer ingredients from your <strong>Recipes & Prep</strong> meal plans with 1 tap.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', width: '100%', marginBottom: '4px' }}>
+                Quick Add Essentials:
+              </span>
+              {['Eggs (1 Dozen)', 'Chicken Breast (1kg)', 'Rolled Oats (500g)', 'Greek Yogurt', 'Olive Oil', 'Spinach'].map((staple) => (
+                <button
+                  key={staple}
+                  type="button"
+                  onClick={() => onAddItem({ id: 's_' + Date.now() + Math.random(), text: staple, category: 'Fresh Produce', completed: false })}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+                >
+                  <Plus size={12} /> {staple}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           Object.entries(grouped).map(([categoryName, items]) => (

@@ -11,7 +11,8 @@ import {
   Database,
   Smartphone,
   Cloud,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp
 } from 'lucide-react'
 
 export default function Navbar({ 
@@ -19,7 +20,8 @@ export default function Navbar({
   setActiveTab, 
   streakCount = 5,
   onOpenCloudSync,
-  isCloudUser = false
+  isCloudUser = false,
+  onOpenOnboarding
 }) {
   const [canInstall, setCanInstall] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
@@ -53,13 +55,10 @@ export default function Navbar({
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Daily Macros', icon: Flame },
-    { id: 'tdee', label: 'Goal & TDEE', icon: Target },
-    { id: 'mealprep', label: 'Recipes & Prep', icon: ChefHat },
-    { id: 'foodlibrary', label: 'Food Database', icon: Database },
-    { id: 'vitamins', label: 'Vitamins & Minerals', icon: Pill },
-    { id: 'water', label: 'Hydration', icon: Droplets },
-    { id: 'shopping', label: 'Shopping List', icon: ShoppingCart }
+    { id: 'today', label: 'Today', icon: Flame, aliases: ['today', 'dashboard'] },
+    { id: 'plan', label: 'Plan & Recipes', icon: ChefHat, aliases: ['plan', 'mealprep', 'foodlibrary', 'shopping'] },
+    { id: 'progress', label: 'Progress & Trends', icon: TrendingUp, aliases: ['progress'] },
+    { id: 'profile', label: 'Profile & Goals', icon: Target, aliases: ['profile', 'tdee'] }
   ]
 
   const todayStr = new Date().toLocaleDateString('en-US', {
@@ -139,7 +138,7 @@ export default function Navbar({
         >
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = activeTab === item.id
+            const isActive = activeTab === item.id || (item.aliases && item.aliases.includes(activeTab))
             return (
               <button
                 key={item.id}
