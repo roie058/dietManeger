@@ -6,21 +6,16 @@ import {
   Download, 
   Upload, 
   ShieldCheck, 
-  Settings, 
   LogOut, 
   Lock, 
   Mail, 
   AlertCircle, 
   CheckCircle2, 
   X, 
-  Key, 
   HardDrive
 } from 'lucide-react'
 import { 
-  isSupabaseConfigured, 
-  getSupabaseCredentials, 
-  saveCustomSupabaseCredentials, 
-  clearCustomSupabaseCredentials 
+  isSupabaseConfigured 
 } from '../utils/supabaseClient'
 import { 
   signUpWithEmail, 
@@ -41,14 +36,11 @@ import {
 } from '../utils/storage'
 
 export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
-  const [activeTab, setActiveTab] = useState('cloud') // 'cloud' | 'manual' | 'settings'
+  const [activeTab, setActiveTab] = useState('cloud') // 'cloud' | 'manual'
   const [authMode, setAuthMode] = useState('signin') // 'signin' | 'signup'
 
   // Supabase Config State
   const [isConfigured, setIsConfigured] = useState(() => isSupabaseConfigured())
-  const [configUrl, setConfigUrl] = useState('')
-  const [configKey, setConfigKey] = useState('')
-  const [configSource, setConfigSource] = useState('')
 
   // Auth State
   const [user, setUser] = useState(null)
@@ -73,12 +65,8 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
   useEffect(() => {
     if (!isOpen) return
 
-    // Refresh credentials & configuration check
-    const creds = getSupabaseCredentials()
+    // Refresh configuration check
     setIsConfigured(isSupabaseConfigured())
-    setConfigUrl(creds.url)
-    setConfigKey(creds.anonKey)
-    setConfigSource(creds.isFromEnv ? 'Environment (.env)' : creds.isFromLocalStorage ? 'Local Settings' : 'Not Configured')
 
     // Refresh user state
     getCurrentUser().then(u => setUser(u))
@@ -174,24 +162,6 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
     const nextVal = !autoSync
     setAutoSync(nextVal)
     setAutoSyncEnabled(nextVal)
-  }
-
-  const handleSaveCredentials = (e) => {
-    e.preventDefault()
-    saveCustomSupabaseCredentials(configUrl, configKey)
-    const configured = isSupabaseConfigured()
-    setIsConfigured(configured)
-    setAuthSuccess('Credentials saved! You can now sign in or create an account.')
-    setActiveTab('cloud')
-  }
-
-  const handleClearCredentials = () => {
-    clearCustomSupabaseCredentials()
-    setConfigUrl('')
-    setConfigKey('')
-    setIsConfigured(false)
-    setUser(null)
-    setAuthSuccess('Custom credentials cleared.')
   }
 
   const handleRequestPersistence = async () => {
@@ -378,27 +348,6 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
             <HardDrive size={16} />
             <span>File Backup & Restore</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('settings')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              background: 'transparent',
-              borderBottom: activeTab === 'settings' ? '2px solid var(--primary, #10b981)' : '2px solid transparent',
-              color: activeTab === 'settings' ? '#ffffff' : 'var(--text-muted, #9ca3af)',
-              fontWeight: activeTab === 'settings' ? '600' : '400',
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Settings size={16} />
-            <span>Supabase Setup</span>
-          </button>
         </div>
 
         {/* Tab Contents */}
@@ -444,22 +393,22 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
           {activeTab === 'cloud' && (
             <div>
               {!isConfigured ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ textAlign: 'center', padding: '24px 16px' }}>
                   <CloudOff size={44} color="#f59e0b" style={{ margin: '0 auto 12px auto' }} />
                   <h3 style={{ fontSize: '1.1rem', color: '#ffffff', marginBottom: '8px' }}>
-                    Supabase Project Not Yet Connected
+                    Cloud Sync Unavailable
                   </h3>
-                  <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #9ca3af)', maxWidth: '420px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
-                    Connect a free Supabase project to enable seamless cloud syncing across all your devices and keep your data 100% safe from browser wiping.
+                  <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #9ca3af)', maxWidth: '420px', margin: '0 auto 16px auto', lineHeight: '1.5' }}>
+                    Cloud account synchronization is not currently active on this instance. Your nutrition and meal logs are safely preserved offline in your browser, and you can export or restore complete backup files anytime.
                   </p>
                   <button
                     type="button"
-                    onClick={() => setActiveTab('settings')}
-                    className="btn btn-primary"
-                    style={{ padding: '10px 20px', fontSize: '0.9rem', gap: '8px' }}
+                    onClick={() => setActiveTab('manual')}
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 18px', fontSize: '0.86rem', gap: '8px' }}
                   >
-                    <Settings size={16} />
-                    <span>Configure Supabase Keys</span>
+                    <HardDrive size={16} />
+                    <span>Go to File Backup & Restore</span>
                   </button>
                 </div>
               ) : user ? (
@@ -774,84 +723,9 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
               </div>
             </div>
           )}
-
-          {/* TAB 3: SUPABASE CONFIGURATION */}
-          {activeTab === 'settings' && (
-            <form onSubmit={handleSaveCredentials} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{
-                padding: '12px 16px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
-                borderRadius: '10px',
-                fontSize: '0.82rem',
-                color: '#a7f3d0',
-                lineHeight: '1.5'
-              }}>
-                <strong>How to get free Supabase credentials:</strong>
-                <ol style={{ margin: '6px 0 0 16px', padding: 0 }}>
-                  <li>Create a free project at <a href="https://supabase.com" target="_blank" rel="noreferrer" style={{ color: '#34d399', textDecoration: 'underline' }}>supabase.com</a>.</li>
-                  <li>In Project Settings → API, copy your <strong>Project URL</strong> and <strong>anon (public) key</strong>.</li>
-                  <li>Run the SQL script from <code>supabase_schema.sql</code> in your project's SQL Editor to create the secured table.</li>
-                </ol>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted, #9ca3af)', marginBottom: '6px' }}>
-                  Supabase Project URL
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={configUrl}
-                  onChange={(e) => setConfigUrl(e.target.value)}
-                  placeholder="https://your-project.supabase.co"
-                  className="input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted, #9ca3af)', marginBottom: '6px' }}>
-                  Supabase Anon (Public) Key
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={configKey}
-                  onChange={(e) => setConfigKey(e.target.value)}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  className="input"
-                  style={{ width: '100%', resize: 'none', fontFamily: 'monospace', fontSize: '0.78rem' }}
-                />
-              </div>
-
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #9ca3af)' }}>
-                Configuration Source: <strong>{configSource}</strong>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
-                >
-                  Save Credentials
-                </button>
-                {configSource.includes('Local') && (
-                  <button
-                    type="button"
-                    onClick={handleClearCredentials}
-                    className="btn btn-secondary"
-                    style={{ padding: '10px 14px' }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </form>
-          )}
         </div>
       </div>
     </div>
   )
 }
+
