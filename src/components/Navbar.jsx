@@ -122,18 +122,21 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          padding: '5px',
-          borderRadius: '16px',
-          border: '1px solid var(--border-color)',
-          overflowX: 'auto',
-          maxWidth: '100%'
-        }}>
+        {/* Navigation Tabs (Desktop Only) */}
+        <nav 
+          className="desktop-only"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            padding: '5px',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            overflowX: 'auto',
+            maxWidth: '100%'
+          }}
+        >
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.id
@@ -171,7 +174,7 @@ export default function Navbar({
         </nav>
 
         {/* Date & Streak Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {onOpenCloudSync && (
             <button
               type="button"
@@ -179,19 +182,21 @@ export default function Navbar({
               className="btn btn-secondary btn-sm"
               style={{
                 fontSize: '0.8rem',
-                padding: '6px 12px',
+                padding: '6px 10px',
                 color: isCloudUser ? '#34d399' : 'var(--text-muted)',
                 border: isCloudUser ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 background: isCloudUser ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                minHeight: '38px'
               }}
               title="Cloud Backup & Storage Settings"
+              aria-label="Cloud Backup & Storage Settings"
             >
               {isCloudUser ? <CheckCircle2 size={15} color="#34d399" /> : <Cloud size={15} />}
-              <span>{isCloudUser ? 'Cloud Synced' : 'Backup & Sync'}</span>
+              <span className="desktop-only">{isCloudUser ? 'Cloud Synced' : 'Backup'}</span>
             </button>
           )}
 
@@ -199,7 +204,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={handleInstall}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm desktop-only"
               style={{
                 fontSize: '0.78rem',
                 padding: '5px 10px',
@@ -217,17 +222,20 @@ export default function Navbar({
             </button>
           )}
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.82rem',
-            color: 'var(--text-muted)',
-            padding: '6px 12px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)'
-          }}>
+          <div 
+            className="desktop-only"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+              padding: '6px 12px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)'
+            }}
+          >
             <Calendar size={14} color="var(--primary-light)" aria-hidden="true" />
             <span>{todayStr}</span>
           </div>
@@ -236,16 +244,17 @@ export default function Navbar({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 12px',
+            padding: '6px 10px',
             background: 'rgba(249, 115, 22, 0.12)',
             border: '1px solid rgba(249, 115, 22, 0.25)',
             borderRadius: '10px',
             color: '#fb923c',
-            fontWeight: '600',
-            fontSize: '0.82rem'
+            fontWeight: '700',
+            fontSize: '0.8rem',
+            minHeight: '38px'
           }}>
             <Flame size={15} aria-hidden="true" />
-            <span className="tabular-nums">{streakCount} Day Streak</span>
+            <span className="tabular-nums">{streakCount}d</span>
           </div>
         </div>
       </div>

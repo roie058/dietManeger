@@ -81,19 +81,21 @@ export default function MealLogList({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '12px 14px'
+                  padding: '12px 14px',
+                  flexWrap: 'wrap',
+                  gap: '10px'
                 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: '1 1 200px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span className="badge badge-blue">{meal.mealType}</span>
-                      <strong style={{ fontSize: '0.95rem' }}>{meal.name}</strong>
+                      <strong style={{ fontSize: '0.95rem', wordBreak: 'break-word' }}>{meal.name}</strong>
                     </div>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       {meal.serving} • {meal.time}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, marginLeft: 'auto' }}>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--primary-light)' }}>
                         {meal.calories} kcal
@@ -113,14 +115,15 @@ export default function MealLogList({
                         onClick={() => toggleMealExpanded(meal.id)}
                         className="btn btn-secondary btn-sm"
                         style={{ 
-                          padding: '5px 8px', 
+                          padding: '6px 10px', 
+                          minHeight: '44px',
                           fontSize: '0.75rem', 
                           display: 'flex', 
                           alignItems: 'center', 
                           gap: '4px' 
                         }}
                       >
-                        <Sparkles size={12} color="var(--accent-purple)" aria-hidden="true" />
+                        <Sparkles size={13} color="var(--accent-purple)" aria-hidden="true" />
                         <span>Micros</span>
                         {isExpanded ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
                       </button>

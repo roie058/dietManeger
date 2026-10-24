@@ -510,16 +510,19 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
           display: 'flex',
           background: '#0d1527',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: '10px 24px',
-          gap: '10px',
-          flexShrink: 0
+          padding: '10px 14px',
+          gap: '8px',
+          flexShrink: 0,
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
         }}>
           <button
             type="button"
             onClick={() => { stopCameraScanner(); setActiveMode('manual'); }}
             style={{
-              flex: 1,
-              padding: '10px 14px',
+              flex: '1 1 auto',
+              padding: '10px 12px',
+              minHeight: '44px',
               borderRadius: 'var(--radius-md)',
               border: activeMode === 'manual' ? '1px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.08)',
               background: activeMode === 'manual' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
@@ -529,21 +532,23 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              fontSize: '0.88rem',
-              transition: 'var(--transition)'
+              gap: '6px',
+              fontSize: '0.86rem',
+              transition: 'var(--transition)',
+              whiteSpace: 'nowrap'
             }}
           >
             <FileText size={16} />
-            <span>1. Manual Entry</span>
+            <span>1. Manual</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveMode('barcode')}
             style={{
-              flex: 1,
-              padding: '10px 14px',
+              flex: '1 1 auto',
+              padding: '10px 12px',
+              minHeight: '44px',
               borderRadius: 'var(--radius-md)',
               border: activeMode === 'barcode' ? '1px solid var(--accent-blue)' : '1px solid rgba(255, 255, 255, 0.08)',
               background: activeMode === 'barcode' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.03)',
@@ -553,21 +558,23 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              fontSize: '0.88rem',
-              transition: 'var(--transition)'
+              gap: '6px',
+              fontSize: '0.86rem',
+              transition: 'var(--transition)',
+              whiteSpace: 'nowrap'
             }}
           >
             <Barcode size={16} />
-            <span>2. Barcode Scan</span>
+            <span>2. Barcode</span>
           </button>
 
           <button
             type="button"
             onClick={() => { stopCameraScanner(); setActiveMode('ocr'); }}
             style={{
-              flex: 1,
-              padding: '10px 14px',
+              flex: '1 1 auto',
+              padding: '10px 12px',
+              minHeight: '44px',
               borderRadius: 'var(--radius-md)',
               border: activeMode === 'ocr' ? '1px solid var(--accent-purple)' : '1px solid rgba(255, 255, 255, 0.08)',
               background: activeMode === 'ocr' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.03)',
@@ -577,13 +584,14 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              fontSize: '0.88rem',
-              transition: 'var(--transition)'
+              gap: '6px',
+              fontSize: '0.86rem',
+              transition: 'var(--transition)',
+              whiteSpace: 'nowrap'
             }}
           >
             <Camera size={16} />
-            <span>3. Nutrition Label Photo (OCR)</span>
+            <span>3. Label OCR</span>
           </button>
         </div>
 
@@ -614,7 +622,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               </div>
 
               {/* Barcode Input Bar */}
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <input
                   type="text"
                   id="barcode-input-field"
@@ -626,7 +634,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleBarcodeLookup()}
                   className="input-field"
-                  style={{ flex: 1, fontSize: '1rem', letterSpacing: '0.05em' }}
+                  style={{ flex: '1 1 200px', fontSize: '1rem', letterSpacing: '0.05em' }}
                 />
                 <button
                   type="button"
@@ -634,7 +642,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   onClick={() => handleBarcodeLookup()}
                   className="btn btn-primary"
                   aria-label="Search product by barcode"
-                  style={{ whiteSpace: 'nowrap' }}
+                  style={{ flex: '1 1 auto', whiteSpace: 'nowrap', minHeight: '44px' }}
                 >
                   {barcodeLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                   <span>Search Barcode</span>
@@ -644,7 +652,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   type="button"
                   onClick={() => cameraActive ? stopCameraScanner() : startCameraScanner()}
                   className="btn btn-secondary"
-                  style={{ whiteSpace: 'nowrap' }}
+                  style={{ flex: '1 1 auto', whiteSpace: 'nowrap', minHeight: '44px' }}
                 >
                   <Camera size={16} color="var(--accent-blue)" />
                   <span>{cameraActive ? 'Close Camera' : 'Open Camera'}</span>

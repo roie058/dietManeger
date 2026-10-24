@@ -506,8 +506,8 @@ export default function WeeklyMealCalendar({
       {/* 7-Day Board Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '20px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+        gap: '16px'
       }}>
         {DAYS_OF_WEEK.map(day => {
           const dayMeals = weeklyPlan[day] || {}

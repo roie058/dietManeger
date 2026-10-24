@@ -46,7 +46,7 @@ export default function DateNavigator({
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
     }}>
       {/* Date Switcher controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         <button
           type="button"
           onClick={handlePrevDay}
@@ -54,9 +54,11 @@ export default function DateNavigator({
           aria-label="Previous day"
           title="Previous day"
           style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
+            minWidth: '44px',
+            minHeight: '44px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '10px',
             padding: 0,
             display: 'inline-flex',
             alignItems: 'center',
@@ -64,7 +66,7 @@ export default function DateNavigator({
             border: '1px solid var(--border-color)'
           }}
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} />
         </button>
 
         {/* Date Display & Native Picker Trigger */}
@@ -75,11 +77,12 @@ export default function DateNavigator({
             gap: '8px',
             background: 'rgba(255, 255, 255, 0.05)',
             border: isToday ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
-            padding: '7px 14px',
+            padding: '8px 14px',
+            minHeight: '44px',
             borderRadius: '10px',
             cursor: 'pointer'
           }}>
-            <Calendar size={15} color={isToday ? 'var(--primary-light)' : 'var(--text-muted)'} />
+            <Calendar size={16} color={isToday ? 'var(--primary-light)' : 'var(--text-muted)'} />
             <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#fff' }}>
               {formatDisplayDate(selectedDate)}
             </span>
@@ -114,9 +117,11 @@ export default function DateNavigator({
           aria-label="Next day"
           title="Next day"
           style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
+            minWidth: '44px',
+            minHeight: '44px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '10px',
             padding: 0,
             display: 'inline-flex',
             alignItems: 'center',
@@ -124,7 +129,7 @@ export default function DateNavigator({
             border: '1px solid var(--border-color)'
           }}
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={20} />
         </button>
 
         {!isToday && (
@@ -132,10 +137,10 @@ export default function DateNavigator({
             type="button"
             onClick={handleJumpToday}
             className="btn btn-sm btn-secondary"
-            style={{ fontSize: '0.76rem', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+            style={{ fontSize: '0.78rem', minHeight: '44px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}
           >
-            <RotateCcw size={12} />
-            Jump to Today
+            <RotateCcw size={13} />
+            <span>Today</span>
           </button>
         )}
       </div>

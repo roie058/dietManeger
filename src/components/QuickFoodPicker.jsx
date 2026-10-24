@@ -76,17 +76,24 @@ export default function QuickFoodPicker({
       {/* Category Chips */}
       <div style={{
         display: 'flex',
-        gap: '6px',
+        gap: '8px',
         overflowX: 'auto',
         paddingBottom: '8px',
-        marginBottom: '10px'
+        marginBottom: '10px',
+        WebkitOverflowScrolling: 'touch'
       }}>
         {foodCategories.map(cat => (
           <button
             key={cat}
             onClick={() => setSelectedFoodCategory(cat)}
             className={`btn btn-sm ${selectedFoodCategory === cat ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ padding: '3px 10px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}
+            style={{ 
+              padding: '8px 14px', 
+              fontSize: '0.82rem', 
+              whiteSpace: 'nowrap',
+              minHeight: '38px',
+              borderRadius: '20px'
+            }}
           >
             {cat}
           </button>
@@ -121,15 +128,15 @@ export default function QuickFoodPicker({
                 gap: '8px'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '0.92rem' }}>{food.name}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                  <div style={{ fontWeight: '600', fontSize: '0.92rem', wordBreak: 'break-word' }}>{food.name}</div>
                   <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {food.serving} • <span style={{ color: 'var(--accent-blue)' }}>{food.protein}g P</span> | <span style={{ color: 'var(--accent-yellow)' }}>{food.carbs}g C</span> | <span style={{ color: 'var(--accent-red)' }}>{food.fat}g F</span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: 'auto' }}>
                   <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--primary-light)' }}>
                     {food.calories} cal
                   </span>
@@ -138,11 +145,19 @@ export default function QuickFoodPicker({
                       type="button"
                       onClick={() => onPreviewFood(food)}
                       className="btn-ghost"
-                      style={{ padding: '5px', cursor: 'pointer' }}
+                      style={{ 
+                        minWidth: '40px', 
+                        minHeight: '40px', 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        borderRadius: '8px',
+                        cursor: 'pointer' 
+                      }}
                       title="View Full Nutritional & Micronutrient Panel"
                       aria-label={`View nutritional panel for ${food.name}`}
                     >
-                      <Info size={15} color="var(--accent-blue)" />
+                      <Info size={18} color="var(--accent-blue)" />
                     </button>
                   )}
                   {onQuickAddFood && (
@@ -150,10 +165,14 @@ export default function QuickFoodPicker({
                       type="button"
                       onClick={() => onQuickAddFood(food)}
                       className="btn btn-secondary btn-sm"
-                      style={{ padding: '5px 10px' }}
+                      style={{ 
+                        padding: '6px 14px', 
+                        minHeight: '40px',
+                        fontWeight: '700'
+                      }}
                       title="Add to daily log"
                     >
-                      <Plus size={14} /> Add
+                      <Plus size={15} /> Add
                     </button>
                   )}
                 </div>

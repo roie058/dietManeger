@@ -21,6 +21,9 @@ import {
 import { RotateCcw, X, CheckCircle2 } from 'lucide-react'
 import { loadStorage, saveStorage, requestPersistentStorage } from './utils/storage'
 import CloudSyncModal from './components/CloudSyncModal'
+import MobileBottomNav from './components/MobileBottomNav'
+import MobileQuickAddFab from './components/MobileQuickAddFab'
+import AddFoodModal from './components/AddFoodModal'
 import { 
   getCurrentUser, 
   onAuthStateChange, 
@@ -32,6 +35,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false)
   const [cloudUser, setCloudUser] = useState(null)
+
+  // Mobile Quick Add Food Modal state
+  const [isMobileAddFoodOpen, setIsMobileAddFoodOpen] = useState(false)
+  const [mobileAddFoodMode, setMobileAddFoodMode] = useState('manual')
 
   // Toast Notification state
   const [undoToast, setUndoToast] = useState(null)
@@ -401,6 +408,25 @@ export default function App() {
     })
   }
 
+  const handleSaveFromMobileModal = (savedFood) => {
+    handleAddNewFoodToLibrary(savedFood)
+    handleAddMeal({
+      id: 'm_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      mealType: 'Snack',
+      name: savedFood.name,
+      serving: savedFood.serving,
+      calories: savedFood.calories,
+      protein: savedFood.protein,
+      carbs: savedFood.carbs,
+      fat: savedFood.fat,
+      micros: savedFood.micros || {},
+      cautions: savedFood.cautions || {},
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    })
+    setIsMobileAddFoodOpen(false)
+    showUndoToast(`Logged “${savedFood.name}” to today's meals`, () => {})
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Accessible Skip to Main Content Link */}
@@ -546,6 +572,49 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Quick-Add Floating Action Button in Thumb Zone */}
+      {activeTab === 'dashboard' && (
+        <MobileQuickAddFab 
+          onOpenBarcode={() => {
+            setMobileAddFoodMode('barcode')
+            setIsMobileAddFoodOpen(true)
+          }}
+          onOpenOcr={() => {
+            setMobileAddFoodMode('ocr')
+            setIsMobileAddFoodOpen(true)
+          }}
+          onOpenManual={() => {
+            setMobileAddFoodMode('manual')
+            setIsMobileAddFoodOpen(true)
+          }}
+          onQuickAddWater={() => {
+            const day = dailyHistory[selectedDate] || { water: 0 }
+            const prevW = day.water || 0
+            handleUpdateWater(prevW + 250)
+            showUndoToast('+250 ml water logged', () => handleUpdateWater(prevW))
+          }}
+        />
+      )}
+
+      {/* Mobile Bottom Navigation Bar in Thumb Zone */}
+      <MobileBottomNav 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+        isCloudUser={Boolean(cloudUser)}
+        streakCount={streakCount}
+      />
+
+      {/* Mobile Quick-Add Food Modal */}
+      {isMobileAddFoodOpen && (
+        <AddFoodModal 
+          isOpen={isMobileAddFoodOpen}
+          initialMode={mobileAddFoodMode}
+          onClose={() => setIsMobileAddFoodOpen(false)}
+          onSave={handleSaveFromMobileModal}
+        />
+      )}
 
       {/* Accessible Undo Toast Notification */}
       {undoToast && (

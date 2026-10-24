@@ -377,7 +377,7 @@ export default function HistoricalAnalytics({
       </div>
 
       {/* Weight Progression & Macro Ratio Split */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '16px' }}>
         
         {/* Weight Curve */}
         <div className="glass-panel" style={{ padding: '24px 26px' }}>
