@@ -6,7 +6,6 @@ import {
   Trash2, 
   Barcode, 
   Camera, 
-  Filter,
   Check
 } from 'lucide-react'
 import AddFoodModal from './AddFoodModal'

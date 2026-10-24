@@ -1,6 +1,7 @@
 /**
  * Nutrition and Metabolic Health Calculators
  */
+import { CAUTION_NUTRIENTS } from '../data/cautionNutrients'
 
 // BMR using Mifflin-St Jeor Equation
 export function calculateBMR({ gender = 'male', weight = 70, height = 175, age = 28 }) {
@@ -210,8 +211,6 @@ export function computeMicronutrientStats(meals = [], dailySupplemented = [], mi
     }
   })
 }
-
-import { CAUTION_NUTRIENTS } from '../data/cautionNutrients'
 
 /**
  * Compute daily totals for unhealthy habits and caution nutrients:

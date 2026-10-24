@@ -330,8 +330,8 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     try {
       const results = await searchProductsByName(query)
       setNameSearchResults(results)
-    } catch (e) {
-      console.warn(e)
+    } catch (_) {
+      setNameSearchResults([])
     } finally {
       setNameSearchLoading(false)
     }
@@ -379,8 +379,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
       const text = res.data?.text || ''
       setOcrRawText(text)
       applyParsedOcrText(text, 'Photo Scanned Product')
-    } catch (err) {
-      console.error(err)
+    } catch (_) {
       setOcrError('OCR recognition failed. You can also paste text directly or choose a sample label.')
     } finally {
       setOcrLoading(false)

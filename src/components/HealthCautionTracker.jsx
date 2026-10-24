@@ -37,7 +37,6 @@ export default function HealthCautionTracker({
 
   // Summary counts
   const exceededCount = items.filter(i => i.status === 'exceeded').length
-  const cautionCount = items.filter(i => i.status === 'caution').length
   const isLateNightIssue = lateNightCalories > 350
 
   // Status color for overall habit score

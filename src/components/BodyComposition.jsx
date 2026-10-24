@@ -4,7 +4,6 @@ import {
   Check, 
   Trash2, 
   Plus, 
-  Scale, 
   Calendar
 } from 'lucide-react'
 import { 

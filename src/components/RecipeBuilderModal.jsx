@@ -7,8 +7,7 @@ import {
   ChefHat, 
   Flame, 
   Scale, 
-  Check, 
-  Barcode
+  Check
 } from 'lucide-react'
 import { calculateRecipeNutrition, parseServingGrams } from '../utils/recipeCalculator'
 import AddFoodModal from './AddFoodModal'
@@ -335,6 +334,18 @@ export default function RecipeBuilderModal({
                 borderRadius: 'var(--radius-sm)',
                 alignItems: 'flex-end'
               }}>
+                <div className="input-group" style={{ flex: '1 1 120px', minWidth: '100px' }}>
+                  <label className="input-label" style={{ fontSize: '0.74rem' }}>Filter Items</label>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={foodSearchQuery}
+                    onChange={(e) => setFoodSearchQuery(e.target.value)}
+                    className="input-field"
+                    style={{ fontSize: '0.88rem', width: '100%' }}
+                  />
+                </div>
+
                 <div className="input-group" style={{ flex: '2 1 180px', minWidth: '150px' }}>
                   <label className="input-label" style={{ fontSize: '0.74rem' }}>Select Ingredient from Database</label>
                   <select

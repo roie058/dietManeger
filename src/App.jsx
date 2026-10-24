@@ -64,7 +64,6 @@ export default function App() {
   // Date & View Selection State
   const todayDateStr = getTodayDateString()
   const [selectedDate, setSelectedDate] = useState(() => todayDateStr)
-  const [dashboardViewMode, setDashboardViewMode] = useState('day') // 'day' | 'analytics'
 
   // Persistent States
   const [profile, setProfile] = useState(() => 
