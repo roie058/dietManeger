@@ -73,8 +73,7 @@ A modern, science-based diet and healthy lifestyle application built with React,
 12. **📷 Gemini AI Vision Nutrition Label Scanner**
     - Next-generation camera & photo nutrition table extraction powered by Google Gemini 1.5 Flash
     - High-accuracy parsing of bilingual English & Hebrew (סימון תזונתי) nutrition panels
-    - Automatic canvas-based image compression (<1280px) to prevent network lag on mobile
-    - Dual configuration: environment variable (`VITE_GEMINI_API_KEY`) or in-app API key drawer with local client fallback
+    - Environment configuration: environment variable (`VITE_GEMINI_API_KEY`) in `.env` with automatic local OCR fallback
 
 ---
 

@@ -16,7 +16,6 @@ import {
   Key,
   Sliders,
   CheckCircle2,
-  ExternalLink,
   ChevronRight
 } from 'lucide-react'
 import { fetchProductByBarcode, searchProductsByName, SAMPLE_BARCODES } from '../utils/barcodeService'
@@ -28,8 +27,7 @@ import {
 } from '../data/wholeFoodsData'
 import { 
   parseNutritionLabelWithGemini, 
-  getGeminiApiKey, 
-  setGeminiApiKey 
+  getGeminiApiKey 
 } from '../utils/geminiVisionService'
 
 // Sample Label Templates for instant test without needing to upload
@@ -215,9 +213,6 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
   const [ocrRawText, setOcrRawText] = useState('')
   const [ocrError, setOcrError] = useState('')
   const [ocrSuccessMsg, setOcrSuccessMsg] = useState('')
-  const [showApiKeyDrawer, setShowApiKeyDrawer] = useState(false)
-  const [customApiKeyInput, setCustomApiKeyInput] = useState(() => getGeminiApiKey())
-  const [keySavedToast, setKeySavedToast] = useState(false)
   const fileInputRef = useRef(null)
 
   // Reset selected image when closing
@@ -526,13 +521,6 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setOcrSuccessMsg('')
   }
 
-  const handleSaveApiKey = () => {
-    setGeminiApiKey(customApiKeyInput)
-    setKeySavedToast(true)
-    setTimeout(() => setKeySavedToast(false), 3000)
-    setShowApiKeyDrawer(false)
-  }
-
   const handleRunAiVision = async () => {
     if (!selectedImage && !imagePreviewUrl) {
       setOcrError('Please select or upload a nutrition label photo first.')
@@ -554,9 +542,9 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     } catch (aiErr) {
       console.warn('Gemini Vision error, evaluating fallback:', aiErr)
 
-      // If user has not set an API key or API key was invalid, inform them with fallback option
+      // If project has not set an API key in .env, inform user
       if (aiErr.code === 'NO_API_KEY') {
-        setOcrError('No Gemini API key found. Add your free key in the settings drawer below, or use the local OCR fallback.')
+        setOcrError('No Gemini API key found in .env (VITE_GEMINI_API_KEY). Using local OCR fallback or manual entry.')
       } else {
         setOcrError(`AI Vision Notice: ${aiErr.message}. You can retry or use the local OCR parser.`)
       }
@@ -1401,72 +1389,26 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   </div>
                 </div>
 
-                {/* API Key Status / Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setShowApiKeyDrawer(!showApiKeyDrawer)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                {/* API Key Status Indicator (Read from env) */}
+                <div
+                  style={{
+                    fontSize: '0.76rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '5px 11px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: hasApiKey ? 'rgba(52, 211, 153, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                    border: `1px solid ${hasApiKey ? 'rgba(52, 211, 153, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
+                    color: hasApiKey ? '#34d399' : '#f59e0b',
+                    fontWeight: 500
+                  }}
+                  title={hasApiKey ? 'Gemini API key active from environment (.env)' : 'VITE_GEMINI_API_KEY is missing in your .env file'}
                 >
                   <Key size={13} color={hasApiKey ? '#34d399' : '#f59e0b'} />
-                  <span>{hasApiKey ? 'AI Key Active ✓' : 'Setup Gemini Key'}</span>
-                </button>
+                  <span>{hasApiKey ? 'AI Key Active (ENV)' : 'Missing .env Key'}</span>
+                </div>
               </div>
-
-              {/* API Key Configuration Drawer */}
-              {showApiKeyDrawer && (
-                <div style={{
-                  background: 'rgba(15, 23, 42, 0.95)',
-                  border: '1px solid rgba(168, 85, 247, 0.35)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="input-label" style={{ color: '#c084fc', margin: 0 }}>
-                      Google Gemini API Key (Stored securely in your browser):
-                    </label>
-                    <a 
-                      href="https://aistudio.google.com/app/apikey" 
-                      target="_blank" 
-                      rel="noreferrer"
-                      style={{ fontSize: '0.74rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      Get Free Gemini Key <ExternalLink size={11} />
-                    </a>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="password"
-                      placeholder="Paste your Gemini API key (AIzaSy...)"
-                      value={customApiKeyInput}
-                      onChange={(e) => setCustomApiKeyInput(e.target.value)}
-                      className="input-field"
-                      style={{ flex: 1, fontSize: '0.88rem' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSaveApiKey}
-                      className="btn btn-primary btn-sm"
-                      style={{ minWidth: '90px' }}
-                    >
-                      Save Key
-                    </button>
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    Tip: You can also set <code>VITE_GEMINI_API_KEY</code> in your project's <code>.env</code> file.
-                  </div>
-                </div>
-              )}
-
-              {keySavedToast && (
-                <div style={{ color: '#34d399', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckCircle2 size={15} /> Key saved! Ready for high-precision label scanning.
-                </div>
-              )}
 
               {/* Photo Upload / Camera Snap Zone */}
               <div 

@@ -4,19 +4,9 @@
  * Supports Hebrew (סימון תזונתי) and English labels.
  */
 
-// Helper to get active API key from env or localStorage
+// Helper to get active API key strictly from environment variable
 export function getGeminiApiKey() {
-  const fromLocal = localStorage.getItem('gemini_api_key')
-  if (fromLocal && fromLocal.trim()) return fromLocal.trim()
   return (import.meta.env.VITE_GEMINI_API_KEY || '').trim()
-}
-
-export function setGeminiApiKey(key) {
-  if (!key) {
-    localStorage.removeItem('gemini_api_key')
-  } else {
-    localStorage.setItem('gemini_api_key', key.trim())
-  }
 }
 
 /**
@@ -107,11 +97,11 @@ Return ONLY a valid JSON object with the following structure (no markdown format
 /**
  * Calls Gemini Vision API to parse a nutrition label
  */
-export async function parseNutritionLabelWithGemini(fileOrBlob, customApiKey = null) {
-  const apiKey = (customApiKey || getGeminiApiKey() || '').trim()
+export async function parseNutritionLabelWithGemini(fileOrBlob) {
+  const apiKey = getGeminiApiKey()
 
   if (!apiKey) {
-    const err = new Error('No Gemini API key found. Please provide an API key in .env or settings.')
+    const err = new Error('No Gemini API key found. Please configure VITE_GEMINI_API_KEY in your .env file.')
     err.code = 'NO_API_KEY'
     throw err
   }
