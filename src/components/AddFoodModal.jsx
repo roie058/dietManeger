@@ -105,18 +105,82 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
   const [searchQuery, setSearchQuery] = useState(initialQuery || '')
   const [selectedWholeFood, setSelectedWholeFood] = useState(null)
   const [selectedGrams, setSelectedGrams] = useState(100)
+  const [wholeFoodCategory, setWholeFoodCategory] = useState('All')
   const [packagedResults, setPackagedResults] = useState([])
   const [isSearchingPackaged, setIsSearchingPackaged] = useState(false)
   const searchDebounceRef = useRef(null)
 
+  // Popular curated staple IDs for initial zero-query view
+  const POPULAR_STAPLE_IDS = [
+    'wf_lettuce_romaine',
+    'wf_chicken_breast',
+    'wf_egg_whole',
+    'wf_banana',
+    'wf_salmon',
+    'wf_greek_yogurt_0',
+    'wf_cucumber',
+    'wf_tomato',
+    'wf_avocado',
+    'wf_rolled_oats',
+    'wf_white_rice',
+    'wf_canned_tuna',
+    'wf_apple',
+    'wf_olive_oil',
+    'wf_sweet_potato',
+    'wf_almonds'
+  ]
+
   // Pre-filter Whole Foods locally with zero latency
   const wholeFoodResults = useMemo(() => {
+    let list = []
     if (!searchQuery.trim()) {
-      // Default to top 8 popular staples when query is empty
-      return WHOLE_FOODS_DATABASE.slice(0, 8)
+      if (wholeFoodCategory === 'All') {
+        const staplesMap = new Map(WHOLE_FOODS_DATABASE.map(f => [f.id, f]))
+        list = POPULAR_STAPLE_IDS.map(id => staplesMap.get(id)).filter(Boolean)
+      } else if (wholeFoodCategory === 'Salads & Greens') {
+        list = WHOLE_FOODS_DATABASE.filter(f => 
+          f.id.includes('lettuce') || 
+          ['wf_spinach', 'wf_arugula', 'wf_kale', 'wf_cabbage_green', 'wf_cabbage_red', 'wf_parsley', 'wf_cilantro'].includes(f.id)
+        )
+      } else if (wholeFoodCategory === 'Vegetables') {
+        list = WHOLE_FOODS_DATABASE.filter(f => 
+          f.category === 'Produce' && 
+          !f.id.includes('lettuce') && 
+          !['wf_spinach', 'wf_arugula', 'wf_kale', 'wf_cabbage_green', 'wf_cabbage_red', 'wf_parsley', 'wf_cilantro', 'wf_banana', 'wf_apple', 'wf_orange', 'wf_berries', 'wf_strawberries', 'wf_watermelon', 'wf_grapes', 'wf_lemon', 'wf_mango', 'wf_pineapple', 'wf_peach', 'wf_kiwi', 'wf_dates_medjool'].includes(f.id)
+        )
+      } else if (wholeFoodCategory === 'Fruits') {
+        list = WHOLE_FOODS_DATABASE.filter(f => 
+          ['wf_banana', 'wf_apple', 'wf_orange', 'wf_berries', 'wf_strawberries', 'wf_watermelon', 'wf_grapes', 'wf_lemon', 'wf_mango', 'wf_pineapple', 'wf_peach', 'wf_kiwi', 'wf_dates_medjool'].includes(f.id)
+        )
+      } else if (wholeFoodCategory === 'Protein') {
+        list = WHOLE_FOODS_DATABASE.filter(f => f.category === 'Protein')
+      } else if (wholeFoodCategory === 'Grains & Carbs') {
+        list = WHOLE_FOODS_DATABASE.filter(f => f.category === 'Carbs')
+      } else if (wholeFoodCategory === 'Dairy & Fats') {
+        list = WHOLE_FOODS_DATABASE.filter(f => f.category === 'Dairy' || f.category === 'Healthy Fats')
+      } else {
+        list = WHOLE_FOODS_DATABASE
+      }
+    } else {
+      list = searchWholeFoods(searchQuery)
+      if (wholeFoodCategory !== 'All') {
+        if (wholeFoodCategory === 'Salads & Greens') {
+          list = list.filter(f => f.id.includes('lettuce') || ['wf_spinach', 'wf_arugula', 'wf_kale', 'wf_cabbage_green', 'wf_cabbage_red', 'wf_parsley', 'wf_cilantro'].includes(f.id))
+        } else if (wholeFoodCategory === 'Vegetables') {
+          list = list.filter(f => f.category === 'Produce' && !f.id.includes('lettuce') && !['wf_spinach', 'wf_arugula', 'wf_kale', 'wf_cabbage_green', 'wf_cabbage_red', 'wf_parsley', 'wf_cilantro', 'wf_banana', 'wf_apple', 'wf_orange', 'wf_berries', 'wf_strawberries', 'wf_watermelon', 'wf_grapes', 'wf_lemon', 'wf_mango', 'wf_pineapple', 'wf_peach', 'wf_kiwi', 'wf_dates_medjool'].includes(f.id))
+        } else if (wholeFoodCategory === 'Fruits') {
+          list = list.filter(f => ['wf_banana', 'wf_apple', 'wf_orange', 'wf_berries', 'wf_strawberries', 'wf_watermelon', 'wf_grapes', 'wf_lemon', 'wf_mango', 'wf_pineapple', 'wf_peach', 'wf_kiwi', 'wf_dates_medjool'].includes(f.id))
+        } else if (wholeFoodCategory === 'Protein') {
+          list = list.filter(f => f.category === 'Protein')
+        } else if (wholeFoodCategory === 'Grains & Carbs') {
+          list = list.filter(f => f.category === 'Carbs')
+        } else if (wholeFoodCategory === 'Dairy & Fats') {
+          list = list.filter(f => f.category === 'Dairy' || f.category === 'Healthy Fats')
+        }
+      }
     }
-    return searchWholeFoods(searchQuery)
-  }, [searchQuery])
+    return list
+  }, [searchQuery, wholeFoodCategory])
 
   // Debounced search for Open Food Facts
   useEffect(() => {
@@ -870,6 +934,52 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 )}
               </div>
 
+              {/* Category Quick Filter Pills */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                overflowX: 'auto',
+                paddingBottom: '4px',
+                WebkitOverflowScrolling: 'touch'
+              }}>
+                {[
+                  { id: 'All', label: 'All Staples', icon: '✨' },
+                  { id: 'Salads & Greens', label: 'Salads & Lettuce', icon: '🥬' },
+                  { id: 'Vegetables', label: 'Vegetables', icon: '🥦' },
+                  { id: 'Fruits', label: 'Fruits', icon: '🍎' },
+                  { id: 'Protein', label: 'Protein', icon: '🍗' },
+                  { id: 'Grains & Carbs', label: 'Grains & Carbs', icon: '🍚' },
+                  { id: 'Dairy & Fats', label: 'Dairy & Fats', icon: '🥛' }
+                ].map(cat => {
+                  const isActive = wholeFoodCategory === cat.id
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setWholeFoodCategory(cat.id)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '0.8rem',
+                        fontWeight: isActive ? '700' : '500',
+                        background: isActive ? 'var(--primary)' : 'rgba(255, 255, 255, 0.05)',
+                        color: isActive ? '#021b11' : '#cbd5e1',
+                        border: isActive ? '1px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
               {/* ACTIVE SELECTION: PORTION SELECTOR & DYNAMIC MACRO CALCULATOR */}
               {selectedWholeFood && scaledWholeFood && (
                 <div style={{
@@ -1088,7 +1198,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '1.1rem' }}>🌿</span>
                     <span style={{ fontWeight: '700', fontSize: '0.92rem', color: '#fff' }}>
-                      {searchQuery ? `Verified Whole Foods (${wholeFoodResults.length})` : 'Popular Everyday Whole Foods (1-Tap):'}
+                      {searchQuery 
+                        ? `Verified Whole Foods (${wholeFoodResults.length})` 
+                        : wholeFoodCategory !== 'All' 
+                          ? `${wholeFoodCategory} (${wholeFoodResults.length})` 
+                          : 'Popular Everyday Whole Foods (1-Tap):'}
                     </span>
                   </div>
                   <span style={{ fontSize: '0.74rem', color: 'var(--primary-light)' }}>
