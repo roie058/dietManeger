@@ -18,7 +18,14 @@ import {
   DEFAULT_RECIPES
 } from './data/initialData'
 import { RotateCcw, X, CheckCircle2 } from 'lucide-react'
-import { loadStorage, saveStorage, requestPersistentStorage, restoreLatestSafetySnapshot } from './utils/storage'
+import { 
+  loadStorage, 
+  saveStorage, 
+  requestPersistentStorage, 
+  restoreLatestSafetySnapshot,
+  recordDeletedId,
+  removeDeletedId
+} from './utils/storage'
 import CloudSyncModal from './components/CloudSyncModal'
 import MobileBottomNav from './components/MobileBottomNav'
 import MobileQuickAddFab from './components/MobileQuickAddFab'
@@ -159,7 +166,7 @@ export default function App() {
         try {
           const res = await syncAndMergeCloudData()
           if (res?.data) {
-            handleReloadAllState()
+            handleReloadAllState(res.data)
           }
         } catch (err) {
           console.warn('[NutriFlow] Initial cloud pull/merge notice:', err.message)
@@ -174,7 +181,7 @@ export default function App() {
         try {
           const res = await syncAndMergeCloudData()
           if (res?.data) {
-            handleReloadAllState()
+            handleReloadAllState(res.data)
           }
         } catch (err) {
           console.warn('[NutriFlow] Auth change cloud pull/merge notice:', err.message)
@@ -192,8 +199,8 @@ export default function App() {
   useEffect(() => {
     if (!cloudUser) return
 
-    const unsubscribeRealtime = subscribeToRealtimeSync(cloudUser.id, () => {
-      handleReloadAllState()
+    const unsubscribeRealtime = subscribeToRealtimeSync(cloudUser.id, (incomingData) => {
+      handleReloadAllState(incomingData)
       showUndoToast('Data synced live from your other device!', null)
     })
 
@@ -203,28 +210,50 @@ export default function App() {
   }, [cloudUser])
 
   // Background auto-sync to cloud when data changes (debounced by 3.5s)
-  // Non-destructive: merges bidirectional changes so no devices overwrite each other
+  // Non-destructive: merges bidirectional changes with deletion tombstones
   useEffect(() => {
     if (!cloudUser || !isAutoSyncEnabled() || !isInitialSyncCompletedRef.current) return
 
-    const timer = setTimeout(() => {
-      syncAndMergeCloudData().catch(err => {
+    const timer = setTimeout(async () => {
+      try {
+        const currentMemoryData = {
+          nutriflow_profile: profile,
+          nutriflow_history: dailyHistory,
+          nutriflow_shopping: shoppingItems,
+          nutriflow_food_library: foodLibrary,
+          nutriflow_recipes: recipes,
+          nutriflow_net_mode: isNetCalorieMode,
+          nutriflow_streak: streakCount
+        }
+        const res = await syncAndMergeCloudData(currentMemoryData)
+        if (res?.data) {
+          handleReloadAllState(res.data)
+        }
+      } catch (err) {
         console.warn('[NutriFlow] Auto-sync notice:', err.message)
-      })
+      }
     }, 3500)
 
     return () => clearTimeout(timer)
   }, [profile, dailyHistory, shoppingItems, foodLibrary, recipes, isNetCalorieMode, streakCount, cloudUser])
 
   // Reload all state if cloud sync, realtime broadcast, or file import restores data
-  const handleReloadAllState = () => {
-    setProfile(loadStorage('nutriflow_profile', DEFAULT_USER_PROFILE))
-    setDailyHistory(loadStorage('nutriflow_history', dailyHistory))
-    setShoppingItems(loadStorage('nutriflow_shopping', DEFAULT_SHOPPING_LIST))
-    setFoodLibrary(loadStorage('nutriflow_food_library', COMMON_FOOD_LIBRARY))
-    setRecipes(loadStorage('nutriflow_recipes', DEFAULT_RECIPES))
-    setIsNetCalorieMode(loadStorage('nutriflow_net_mode', false))
-    setStreakCount(loadStorage('nutriflow_streak', 6))
+  const handleReloadAllState = (data = null) => {
+    const prof = data?.nutriflow_profile || loadStorage('nutriflow_profile', DEFAULT_USER_PROFILE)
+    const hist = data?.nutriflow_history || loadStorage('nutriflow_history', null)
+    const shop = data?.nutriflow_shopping || loadStorage('nutriflow_shopping', DEFAULT_SHOPPING_LIST)
+    const foods = data?.nutriflow_food_library || loadStorage('nutriflow_food_library', COMMON_FOOD_LIBRARY)
+    const recs = data?.nutriflow_recipes || loadStorage('nutriflow_recipes', DEFAULT_RECIPES)
+    const net = data?.nutriflow_net_mode !== undefined ? data.nutriflow_net_mode : loadStorage('nutriflow_net_mode', false)
+    const streak = data?.nutriflow_streak !== undefined ? data.nutriflow_streak : loadStorage('nutriflow_streak', 6)
+
+    setProfile(prof)
+    if (hist) setDailyHistory(hist)
+    setShoppingItems(shop)
+    setFoodLibrary(foods)
+    setRecipes(recs)
+    setIsNetCalorieMode(net)
+    setStreakCount(streak)
   }
 
   // Restore latest safety snapshot in case user wants an instant rollback
@@ -254,20 +283,33 @@ export default function App() {
     const mealToDelete = day.mealLogs.find(m => m.id === id)
     if (!mealToDelete) return
 
+    // Record tombstone so this deletion syncs to cloud and other devices
+    recordDeletedId(id)
+
     setDailyHistory(prev => {
       const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
       return {
         ...prev,
-        [selectedDate]: { ...d, mealLogs: d.mealLogs.filter(m => m.id !== id) }
+        [selectedDate]: { 
+          ...d, 
+          updatedAt: new Date().toISOString(),
+          mealLogs: d.mealLogs.filter(m => m.id !== id) 
+        }
       }
     })
 
     showUndoToast(`Deleted “${mealToDelete.name}”`, () => {
+      removeDeletedId(id)
+      const restored = { ...mealToDelete, updatedAt: new Date().toISOString() }
       setDailyHistory(prev => {
         const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
         return {
           ...prev,
-          [selectedDate]: { ...d, mealLogs: [mealToDelete, ...d.mealLogs] }
+          [selectedDate]: { 
+            ...d, 
+            updatedAt: new Date().toISOString(),
+            mealLogs: [restored, ...d.mealLogs] 
+          }
         }
       })
     })
@@ -280,7 +322,7 @@ export default function App() {
         const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: newProfile.weight, vitamins: [] }
         return {
           ...prev,
-          [selectedDate]: { ...d, weight: newProfile.weight }
+          [selectedDate]: { ...d, weight: newProfile.weight, updatedAt: new Date().toISOString() }
         }
       })
     }
@@ -295,7 +337,7 @@ export default function App() {
         : [...currentVits, id]
       return {
         ...prev,
-        [selectedDate]: { ...day, vitamins: updated }
+        [selectedDate]: { ...day, vitamins: updated, updatedAt: new Date().toISOString() }
       }
     })
   }
@@ -309,7 +351,7 @@ export default function App() {
         const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
         return {
           ...prev,
-          [selectedDate]: { ...d, water: 0 }
+          [selectedDate]: { ...d, water: 0, updatedAt: new Date().toISOString() }
         }
       })
       showUndoToast('Water intake reset to 0 ml', () => {
@@ -317,7 +359,7 @@ export default function App() {
           const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
           return {
             ...prev,
-            [selectedDate]: { ...d, water: prevWater }
+            [selectedDate]: { ...d, water: prevWater, updatedAt: new Date().toISOString() }
           }
         })
       })
@@ -326,7 +368,7 @@ export default function App() {
         const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [] }
         return {
           ...prev,
-          [selectedDate]: { ...d, water: newAmount }
+          [selectedDate]: { ...d, water: newAmount, updatedAt: new Date().toISOString() }
         }
       })
     }
@@ -337,7 +379,7 @@ export default function App() {
       const d = prev[dateKey] || { mealLogs: [], water: 0, weight: weightVal, vitamins: [] }
       return {
         ...prev,
-        [dateKey]: { ...d, weight: weightVal }
+        [dateKey]: { ...d, weight: weightVal, updatedAt: new Date().toISOString() }
       }
     })
     if (dateKey === selectedDate || dateKey === todayDateStr) {
@@ -351,7 +393,11 @@ export default function App() {
       const currentWorkouts = day.workouts || []
       return {
         ...prev,
-        [selectedDate]: { ...day, workouts: [newWorkout, ...currentWorkouts] }
+        [selectedDate]: { 
+          ...day, 
+          updatedAt: new Date().toISOString(),
+          workouts: [newWorkout, ...currentWorkouts] 
+        }
       }
     })
   }
@@ -361,20 +407,32 @@ export default function App() {
     const workoutToDelete = (day.workouts || []).find(w => w.id === workoutId)
     if (!workoutToDelete) return
 
+    recordDeletedId(workoutId)
+
     setDailyHistory(prev => {
       const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
       return {
         ...prev,
-        [selectedDate]: { ...d, workouts: (d.workouts || []).filter(w => w.id !== workoutId) }
+        [selectedDate]: { 
+          ...d, 
+          updatedAt: new Date().toISOString(),
+          workouts: (d.workouts || []).filter(w => w.id !== workoutId) 
+        }
       }
     })
 
     showUndoToast(`Removed workout “${workoutToDelete.name}”`, () => {
+      removeDeletedId(workoutId)
+      const restored = { ...workoutToDelete, updatedAt: new Date().toISOString() }
       setDailyHistory(prev => {
         const d = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
         return {
           ...prev,
-          [selectedDate]: { ...d, workouts: [workoutToDelete, ...(d.workouts || [])] }
+          [selectedDate]: { 
+            ...d, 
+            updatedAt: new Date().toISOString(),
+            workouts: [restored, ...(d.workouts || [])] 
+          }
         }
       })
     })
@@ -382,29 +440,39 @@ export default function App() {
 
   const handleToggleShopping = (id) => {
     setShoppingItems(shoppingItems.map(item => 
-      item.id === id ? { ...item, completed: !item.completed } : item
+      item.id === id ? { ...item, completed: !item.completed, updatedAt: new Date().toISOString() } : item
     ))
   }
 
   const handleAddShoppingItem = (item) => {
-    setShoppingItems([item, ...shoppingItems])
+    const stamped = { ...item, updatedAt: item.updatedAt || new Date().toISOString() }
+    setShoppingItems([stamped, ...shoppingItems])
   }
 
   const handleDeleteShoppingItem = (id) => {
     const itemToDelete = shoppingItems.find(i => i.id === id)
     if (!itemToDelete) return
+
+    recordDeletedId(id)
+
     setShoppingItems(shoppingItems.filter(i => i.id !== id))
     showUndoToast(`Removed “${itemToDelete.text}”`, () => {
-      setShoppingItems(prev => [itemToDelete, ...prev])
+      removeDeletedId(id)
+      const restored = { ...itemToDelete, updatedAt: new Date().toISOString() }
+      setShoppingItems(prev => [restored, ...prev])
     })
   }
 
   const handleClearCompletedShopping = () => {
     const completedItems = shoppingItems.filter(i => i.completed)
     if (completedItems.length === 0) return
+
+    completedItems.forEach(i => recordDeletedId(i.id))
+
     setShoppingItems(shoppingItems.filter(i => !i.completed))
     showUndoToast(`Cleared ${completedItems.length} checked item${completedItems.length > 1 ? 's' : ''}`, () => {
-      setShoppingItems(prev => [...completedItems, ...prev])
+      completedItems.forEach(i => removeDeletedId(i.id))
+      setShoppingItems(prev => [...completedItems.map(i => ({ ...i, updatedAt: new Date().toISOString() })), ...prev])
     })
   }
 
@@ -415,14 +483,16 @@ export default function App() {
           id: 's_batch_' + Date.now() + '_' + idx,
           text: item,
           category: 'Produce & Staples',
-          completed: false
+          completed: false,
+          updatedAt: new Date().toISOString()
         }
       }
       return {
         id: 's_batch_' + Date.now() + '_' + idx,
         text: item.text || item.name,
         category: item.category || 'Produce & Staples',
-        completed: false
+        completed: false,
+        updatedAt: new Date().toISOString()
       }
     })
     setShoppingItems(prev => [...newItems, ...prev])
@@ -430,29 +500,40 @@ export default function App() {
   }
 
   const handleAddBatchMeals = (meals) => {
+    const stamped = meals.map(m => ({ ...m, updatedAt: m.updatedAt || new Date().toISOString() }))
     setDailyHistory(prev => {
       const day = prev[selectedDate] || { mealLogs: [], water: 0, weight: profile.weight || 76, vitamins: [], workouts: [] }
       return {
         ...prev,
-        [selectedDate]: { ...day, mealLogs: [...meals, ...(day.mealLogs || [])] }
+        [selectedDate]: { 
+          ...day, 
+          updatedAt: new Date().toISOString(),
+          mealLogs: [...stamped, ...(day.mealLogs || [])] 
+        }
       }
     })
   }
 
   // Food Library Handlers
   const handleAddNewFoodToLibrary = (newFood) => {
+    const stamped = { ...newFood, updatedAt: new Date().toISOString() }
     setFoodLibrary(prev => {
-      const filtered = prev.filter(f => f.id !== newFood.id)
-      return [newFood, ...filtered]
+      const filtered = prev.filter(f => f.id !== stamped.id)
+      return [stamped, ...filtered]
     })
   }
 
   const handleDeleteFoodFromLibrary = (foodId) => {
     const foodToDelete = foodLibrary.find(f => f.id === foodId)
     if (!foodToDelete) return
+
+    recordDeletedId(foodId)
+
     setFoodLibrary(prev => prev.filter(f => f.id !== foodId))
     showUndoToast(`Deleted “${foodToDelete.name}” from database`, () => {
-      setFoodLibrary(prev => [foodToDelete, ...prev])
+      removeDeletedId(foodId)
+      const restored = { ...foodToDelete, updatedAt: new Date().toISOString() }
+      setFoodLibrary(prev => [restored, ...prev])
     })
   }
 
@@ -460,7 +541,7 @@ export default function App() {
   const handleSaveRecipe = (recipeData) => {
     const stampedRecipe = {
       ...recipeData,
-      updatedAt: recipeData.updatedAt || new Date().toISOString()
+      updatedAt: new Date().toISOString()
     }
     setRecipes(prev => {
       const exists = prev.some(r => r.id === stampedRecipe.id)
@@ -474,9 +555,14 @@ export default function App() {
   const handleDeleteRecipe = (recipeId) => {
     const recipeToDelete = recipes.find(r => r.id === recipeId)
     if (!recipeToDelete) return
+
+    recordDeletedId(recipeId)
+
     setRecipes(prev => prev.filter(r => r.id !== recipeId))
     showUndoToast(`Deleted recipe “${recipeToDelete.title}”`, () => {
-      setRecipes(prev => [recipeToDelete, ...prev])
+      removeDeletedId(recipeId)
+      const restored = { ...recipeToDelete, updatedAt: new Date().toISOString() }
+      setRecipes(prev => [restored, ...prev])
     })
   }
 

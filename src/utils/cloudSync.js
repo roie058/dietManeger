@@ -5,7 +5,9 @@ import {
   saveStorage, 
   loadStorage, 
   createSafetySnapshot, 
-  mergeNutriflowData 
+  mergeNutriflowData,
+  deduplicateNutriflowData,
+  cleanAndDeduplicateStorage
 } from './storage'
 
 const LAST_SYNC_KEY = 'nutriflow_last_synced'
@@ -170,12 +172,12 @@ export async function fetchCloudData() {
 
 /**
  * Performs a smart, non-destructive bidirectional sync:
- * - Never blindly overwrites local recipes or history with stale data.
- * - Creates an automated safety snapshot before any merge.
- * - Computes a union of recipes, history meals, and foods across both devices.
- * - Saves merged state locally and simultaneously pushes it to the cloud.
+ * - Uses deletion tombstones so deleted items are removed everywhere and never resurrect.
+ * - Deeply deduplicates recipes, foods, meals, and shopping items.
+ * - Resolves conflicts using timestamps and preserves user progress.
+ * - Updates local storage and pushes the unified clean state to the cloud.
  */
-export async function syncAndMergeCloudData() {
+export async function syncAndMergeCloudData(optionalLocalData = null) {
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase is not configured.')
 
@@ -183,15 +185,19 @@ export async function syncAndMergeCloudData() {
   if (!user) throw new Error('You must be signed in to sync.')
 
   const cloudRecord = await fetchCloudData()
-  const localData = getAllNutriflowData()
+  const localData = optionalLocalData 
+    ? { ...getAllNutriflowData(), ...optionalLocalData }
+    : getAllNutriflowData()
 
   // First time sync: cloud has no record yet, upload local data safely
   if (!cloudRecord || !cloudRecord.payload || Object.keys(cloudRecord.payload).length === 0) {
-    const uploadRes = await uploadLocalDataToCloud(localData)
+    const { cleanedData } = deduplicateNutriflowData(localData)
+    restoreAllNutriflowData(cleanedData)
+    const uploadRes = await uploadLocalDataToCloud(cleanedData)
     return {
       action: 'uploaded',
       timestamp: uploadRes.timestamp,
-      data: localData,
+      data: cleanedData,
       message: 'Initial local data successfully uploaded to cloud.'
     }
   }
@@ -199,18 +205,21 @@ export async function syncAndMergeCloudData() {
   // Create safety snapshot of local data prior to merge
   createSafetySnapshot('pre_sync_merge')
 
-  // Smart non-destructive merge: union of recipes, foods, meals
-  const mergedData = mergeNutriflowData(localData, cloudRecord.payload)
+  // Smart non-destructive merge: union of recipes, foods, meals with tombstones
+  const mergedRaw = mergeNutriflowData(localData, cloudRecord.payload)
+
+  // Guarantee deep deduplication
+  const { cleanedData, stats } = deduplicateNutriflowData(mergedRaw)
 
   // Save merged result to local storage
-  restoreAllNutriflowData(mergedData)
+  restoreAllNutriflowData(cleanedData)
 
   const syncTime = new Date().toISOString()
   saveStorage(LAST_SYNC_KEY, syncTime)
 
-  // Push the unified merged data back to cloud so both devices have identical complete data
+  // Push the unified clean data back to cloud so both devices have identical complete data
   try {
-    await uploadLocalDataToCloud(mergedData)
+    await uploadLocalDataToCloud(cleanedData)
   } catch (pushErr) {
     console.warn('[NutriFlow] Cloud push after merge warning:', pushErr)
   }
@@ -218,16 +227,33 @@ export async function syncAndMergeCloudData() {
   return {
     action: 'merged',
     timestamp: syncTime,
-    data: mergedData,
-    message: 'Data safely merged across devices. No recipes or meals were overwritten.'
+    data: cleanedData,
+    stats,
+    message: 'Data safely synced across devices without duplicates or missing items.'
   }
+}
+
+/**
+ * Performs a complete deduplication scan of local storage and pushes the cleaned state to cloud.
+ */
+export async function cleanDeduplicateAndSync() {
+  const { cleanedData, stats } = cleanAndDeduplicateStorage()
+  const user = await getCurrentUser()
+  if (user) {
+    try {
+      await uploadLocalDataToCloud(cleanedData)
+    } catch (err) {
+      console.warn('[NutriFlow] Cloud upload after deduplication warning:', err)
+    }
+  }
+  return { cleanedData, stats }
 }
 
 /**
  * Backward compatibility alias for syncAndMergeCloudData
  */
-export async function syncCloudAndLocal() {
-  return syncAndMergeCloudData()
+export async function syncCloudAndLocal(optionalData = null) {
+  return syncAndMergeCloudData(optionalData)
 }
 
 /**
@@ -278,11 +304,12 @@ export function subscribeToRealtimeSync(userId, onRemoteUpdate) {
 
           const currentLocal = getAllNutriflowData()
           const merged = mergeNutriflowData(currentLocal, newRecord.payload)
-          restoreAllNutriflowData(merged)
+          const { cleanedData } = deduplicateNutriflowData(merged)
+          restoreAllNutriflowData(cleanedData)
           saveStorage(LAST_SYNC_KEY, new Date().toISOString())
 
           if (onRemoteUpdate) {
-            onRemoteUpdate(merged)
+            onRemoteUpdate(cleanedData)
           }
         }
       )

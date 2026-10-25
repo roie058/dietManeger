@@ -12,7 +12,8 @@ import {
   AlertCircle, 
   CheckCircle2, 
   X, 
-  HardDrive
+  HardDrive,
+  Sparkles
 } from 'lucide-react'
 import { 
   isSupabaseConfigured 
@@ -24,6 +25,7 @@ import {
   getCurrentUser, 
   uploadLocalDataToCloud, 
   syncAndMergeCloudData, 
+  cleanDeduplicateAndSync,
   getLastSyncTime, 
   isAutoSyncEnabled, 
   setAutoSyncEnabled 
@@ -171,6 +173,33 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
       setSyncStatusMsg({ type: 'success', text: 'Local data pushed to cloud successfully!' })
     } catch (err) {
       setSyncStatusMsg({ type: 'error', text: err.message || 'Upload to cloud failed.' })
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  const handleCleanDuplicates = async () => {
+    setSyncLoading(true)
+    setSyncStatusMsg(null)
+    try {
+      const { stats } = await cleanDeduplicateAndSync()
+      setLastSync(getLastSyncTime())
+      setLatestSnapshot(getLatestSafetySnapshot())
+      const totalRemoved = (stats.recipesRemoved || 0) + (stats.foodsRemoved || 0) + (stats.mealsRemoved || 0) + (stats.shoppingRemoved || 0)
+      if (totalRemoved > 0) {
+        setSyncStatusMsg({
+          type: 'success',
+          text: `Cleaned up ${totalRemoved} duplicate items (${stats.recipesRemoved} recipes, ${stats.mealsRemoved} meals, ${stats.foodsRemoved} custom foods, ${stats.shoppingRemoved} shopping items). All devices updated!`
+        })
+      } else {
+        setSyncStatusMsg({
+          type: 'success',
+          text: 'No duplicate items found. Your database is completely clean and synchronized!'
+        })
+      }
+      if (onDataRestored) onDataRestored()
+    } catch (err) {
+      setSyncStatusMsg({ type: 'error', text: err.message || 'Failed to clean duplicates.' })
     } finally {
       setSyncLoading(false)
     }
@@ -581,6 +610,26 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
                       <Upload size={16} />
                       <span>Push Local to Cloud</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCleanDuplicates}
+                      disabled={syncLoading}
+                      className="btn btn-secondary"
+                      style={{ 
+                        gridColumn: 'span 2', 
+                        padding: '12px', 
+                        fontSize: '0.88rem', 
+                        justifyContent: 'center',
+                        background: 'rgba(99, 102, 241, 0.12)',
+                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        color: '#a5b4fc',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <Sparkles size={16} />
+                      <span>{syncLoading ? 'Scanning & Purging...' : 'Scan & Remove Duplicate Items'}</span>
+                    </button>
                   </div>
 
                   {/* Automatic Safety Snapshot Rollback Option */}
@@ -785,6 +834,30 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
                 >
                   <Upload size={16} />
                   <span>Select Backup File to Restore</span>
+                </button>
+              </div>
+
+              <div style={{
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'rgba(99, 102, 241, 0.05)',
+                border: '1px solid rgba(99, 102, 241, 0.25)'
+              }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#ffffff', marginBottom: '6px' }}>
+                  Database Deduplication
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #9ca3af)', lineHeight: '1.5', marginBottom: '14px' }}>
+                  Scan your local storage for duplicate recipes, repeat meal logs, or redundant items and cleanly purge duplicates without losing any unique data.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCleanDuplicates}
+                  disabled={syncLoading}
+                  className="btn btn-secondary"
+                  style={{ gap: '8px', padding: '10px 18px', fontSize: '0.88rem', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.4)' }}
+                >
+                  <Sparkles size={16} />
+                  <span>{syncLoading ? 'Scanning...' : 'Scan & Clean Duplicates'}</span>
                 </button>
               </div>
             </div>

@@ -6,7 +6,7 @@
 
 // Helper to get active API key strictly from environment variable
 export function getGeminiApiKey() {
-  return (import.meta.env.GEMINI_API_KEY || '').trim()
+  return (import.meta.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || '').trim()
 }
 
 /**
