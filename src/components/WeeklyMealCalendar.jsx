@@ -297,7 +297,7 @@ export default function WeeklyMealCalendar({
       const meal = dayMeals[slot.key]
       if (meal) {
         mealsToLog.push({
-          id: 'm_wk_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          id: 'm_wk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
           mealType: slot.label,
           name: meal.name,
           serving: '1 planned portion',

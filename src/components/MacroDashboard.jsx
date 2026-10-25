@@ -107,7 +107,7 @@ export default function MacroDashboard({
   // Quick Add from Library
   const handleQuickAdd = (food) => {
     const newEntry = {
-      id: 'm_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      id: 'm_' + Date.now() + Math.random().toString(36).slice(2, 6),
       mealType: 'Snack',
       name: food.name,
       serving: food.serving,
@@ -127,7 +127,7 @@ export default function MacroDashboard({
   }
 
   const openCustomModal = (defaultMealType = 'Snack') => {
-    setAddFoodModalMode('manual')
+    setAddFoodModalMode('search')
     setIsAddFoodModalOpen(true)
   }
 

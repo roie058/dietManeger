@@ -42,7 +42,7 @@ export default function App() {
 
   // Mobile Quick Add Food Modal state
   const [isMobileAddFoodOpen, setIsMobileAddFoodOpen] = useState(false)
-  const [mobileAddFoodMode, setMobileAddFoodMode] = useState('manual')
+  const [mobileAddFoodMode, setMobileAddFoodMode] = useState('search')
 
   // Toast Notification state
   const [undoToast, setUndoToast] = useState(null)
@@ -423,7 +423,7 @@ export default function App() {
   const handleSaveFromMobileModal = (savedFood) => {
     handleAddNewFoodToLibrary(savedFood)
     handleAddMeal({
-      id: 'm_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      id: 'm_' + Date.now() + Math.random().toString(36).slice(2, 6),
       mealType: 'Snack',
       name: savedFood.name,
       serving: savedFood.serving,
@@ -648,7 +648,7 @@ export default function App() {
             setIsMobileAddFoodOpen(true)
           }}
           onOpenManual={() => {
-            setMobileAddFoodMode('manual')
+            setMobileAddFoodMode('search')
             setIsMobileAddFoodOpen(true)
           }}
           onQuickAddWater={() => {

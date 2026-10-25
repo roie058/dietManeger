@@ -64,6 +64,18 @@ A modern, science-based diet and healthy lifestyle application built with React,
     - Automatic extraction via Barcode scanning and OCR Nutrition Facts label reader
     - Habit Safety Score (0–100%) with clinical countermeasures and food swaps
 
+11. **🌿 Curated Whole Foods Index & Dynamic Portion Scaling**
+    - USDA FoodData Central verified database for everyday whole foods (fruits, vegetables, meats, grains, nuts, dairy)
+    - Zero-latency local search in both English and Hebrew (e.g., "banana" / "בננה")
+    - 1-tap household portion size presets (e.g. "1 medium ~118g", "1 small ~101g", "1 cup chopped")
+    - Real-time gram slider & custom weight scaling for macros, micronutrients, and cautions
+
+12. **📷 Gemini AI Vision Nutrition Label Scanner**
+    - Next-generation camera & photo nutrition table extraction powered by Google Gemini 1.5 Flash
+    - High-accuracy parsing of bilingual English & Hebrew (סימון תזונתי) nutrition panels
+    - Automatic canvas-based image compression (<1280px) to prevent network lag on mobile
+    - Dual configuration: environment variable (`VITE_GEMINI_API_KEY`) or in-app API key drawer with local client fallback
+
 ---
 
 ## 🛠️ Project Structure
@@ -76,6 +88,8 @@ dietManeger/
 ├── supabase_schema.sql        # Supabase PostgreSQL DDL with Row-Level Security (RLS)
 ├── .env.example               # Clean environment configuration template
 ├── .gitignore
+├── docs/                      # Architecture, specifications & decision records
+│   └── food_logging_redesign.md
 ├── src/
 │   ├── main.jsx               # React DOM entry point & Service Worker registration
 │   ├── App.jsx                # App layout, state coordination & navigation
@@ -83,13 +97,15 @@ dietManeger/
 │   ├── data/
 │   │   ├── initialData.js     # Default user profile, food library, initial meals & recipes
 │   │   ├── defaultWeeklyPlan.js# Default 7-day nutritional structure
-│   │   └── vitaminsMinerals.js# Clinical micronutrient RDA & food sources database
+│   │   ├── vitaminsMinerals.js# Clinical micronutrient RDA & food sources database
+│   │   └── wholeFoodsData.js  # Curated USDA whole foods & portion presets database
 │   ├── utils/
 │   │   ├── calculators.js     # BMR, TDEE, macro split, micronutrient & hydration math
 │   │   ├── cloudSync.js       # Supabase authentication & debounced cloud synchronization
 │   │   ├── storage.js         # LocalStorage read/write wrapper & persistent storage API
 │   │   ├── barcodeService.js  # Open Food Facts API barcode resolution
-│   │   └── nutritionOcrParser.js # Optical character recognition text parser for nutrition labels
+│   │   ├── geminiVisionService.js # Google Gemini Flash AI Vision nutrition label extraction
+│   │   └── nutritionOcrParser.js # Client-side fallback OCR text parser for nutrition labels
 │   └── components/
 │       ├── Navbar.jsx         # Responsive desktop/mobile header with 4 core pillars
 │       ├── MobileBottomNav.jsx# Ergonomic fixed bottom navigation bar & "More" drawer sheet
@@ -100,7 +116,7 @@ dietManeger/
 │       ├── ProfileHub.jsx     # Consolidated hub for Goals, TDEE, Body Composition & Cloud Sync
 │       ├── DateNavigator.jsx  # Multi-day history date switcher & analytics toggle
 │       ├── HistoricalAnalytics.jsx # Multi-day trends, calorie deficit, weight curve & macro split
-│       ├── AddFoodModal.jsx   # 3-in-1 logger: Manual, Camera Barcode & Photo Label OCR
+│       ├── AddFoodModal.jsx   # 4-in-1 logger: Whole Foods Search, Camera Barcode, Gemini AI Vision & Manual
 │       ├── CloudSyncModal.jsx # Supabase cloud account sync & JSON backup/restore
 │       ├── WeeklyMealCalendar.jsx # 7-day drag/assign planner & auto-shopping list generator
 │       ├── TdeeCalculator.jsx # BMR/TDEE calculator and target setter
@@ -120,16 +136,21 @@ npm install
 ```
 
 ### 2. Configure Environment Variables (Optional)
-NutriFlow works 100% offline and locally out of the box. For cloud synchronization across devices, copy `.env.example` to `.env`:
+NutriFlow works 100% offline and locally out of the box. For cloud synchronization and AI vision scanning, copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-And set your Supabase credentials:
+And set your credentials:
 ```env
+# Supabase Cloud Sync (Optional)
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-public-key
+
+# Google Gemini Flash API Key for AI Vision Label Scanning (Optional)
+# Free key available at https://aistudio.google.com/app/apikey
+VITE_GEMINI_API_KEY=your-gemini-api-key-here
 ```
 
 ### 3. Start Development Server

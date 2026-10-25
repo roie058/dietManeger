@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { 
   X, 
@@ -12,10 +12,25 @@ import {
   Loader2, 
   Search, 
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  Key,
+  Sliders,
+  CheckCircle2,
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react'
 import { fetchProductByBarcode, searchProductsByName, SAMPLE_BARCODES } from '../utils/barcodeService'
 import { parseNutritionText } from '../utils/nutritionOcrParser'
+import { 
+  WHOLE_FOODS_DATABASE, 
+  searchWholeFoods, 
+  scaleWholeFoodPortion 
+} from '../data/wholeFoodsData'
+import { 
+  parseNutritionLabelWithGemini, 
+  getGeminiApiKey, 
+  setGeminiApiKey 
+} from '../utils/geminiVisionService'
 
 // Sample Label Templates for instant test without needing to upload
 const SAMPLE_OCR_TEMPLATES = [
@@ -78,16 +93,76 @@ Potassium: 733mg`
   }
 ]
 
-export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '', initialMode = 'manual' }) {
-  const [activeMode, setActiveMode] = useState(initialMode) // 'manual' | 'barcode' | 'ocr'
+export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '', initialMode = 'search' }) {
+  // Mode tabs: 'search' | 'barcode' | 'ocr' | 'manual'
+  const [activeMode, setActiveMode] = useState(initialMode || 'search')
 
   useEffect(() => {
     if (isOpen) {
-      setActiveMode(initialMode)
+      setActiveMode(initialMode || 'search')
     }
   }, [isOpen, initialMode])
 
-  // Food Form State
+  // --- SEARCH TAB STATE ---
+  const [searchQuery, setSearchQuery] = useState(initialQuery || '')
+  const [selectedWholeFood, setSelectedWholeFood] = useState(null)
+  const [selectedGrams, setSelectedGrams] = useState(100)
+  const [packagedResults, setPackagedResults] = useState([])
+  const [isSearchingPackaged, setIsSearchingPackaged] = useState(false)
+  const searchDebounceRef = useRef(null)
+
+  // Pre-filter Whole Foods locally with zero latency
+  const wholeFoodResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      // Default to top 8 popular staples when query is empty
+      return WHOLE_FOODS_DATABASE.slice(0, 8)
+    }
+    return searchWholeFoods(searchQuery)
+  }, [searchQuery])
+
+  // Debounced search for Open Food Facts
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    const q = searchQuery.trim()
+    if (!q || q.length < 2) {
+      setPackagedResults([])
+      setIsSearchingPackaged(false)
+      return
+    }
+
+    setIsSearchingPackaged(true)
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const offResults = await searchProductsByName(q)
+        setPackagedResults(offResults || [])
+      } catch (err) {
+        console.warn('Packaged search error:', err)
+        setPackagedResults([])
+      } finally {
+        setIsSearchingPackaged(false)
+      }
+    }, 400)
+
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    }
+  }, [searchQuery])
+
+  // Handle selecting a whole food for portion scaling
+  const handleSelectWholeFood = (food) => {
+    setSelectedWholeFood(food)
+    const defPortion = food.portions?.find(p => p.isDefault) || food.portions?.[0]
+    const initialWeight = defPortion ? defPortion.grams : 100
+    setSelectedGrams(initialWeight)
+  }
+
+  // Calculated scaled whole food item
+  const scaledWholeFood = useMemo(() => {
+    if (!selectedWholeFood) return null
+    return scaleWholeFoodPortion(selectedWholeFood, selectedGrams)
+  }, [selectedWholeFood, selectedGrams])
+
+  // --- FOOD FORM STATE (for Manual / Review Mode) ---
   const [foodData, setFoodData] = useState({
     name: initialQuery || '',
     category: 'Protein',
@@ -124,16 +199,14 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
   const [showCautions, setShowCautions] = useState(false)
   const [detectedFields, setDetectedFields] = useState({})
 
-  // Barcode Mode States
+  // --- BARCODE MODE STATE ---
   const [barcodeInput, setBarcodeInput] = useState('')
   const [barcodeLoading, setBarcodeLoading] = useState(false)
   const [barcodeError, setBarcodeError] = useState('')
   const [cameraActive, setCameraActive] = useState(false)
-  const [nameSearchResults, setNameSearchResults] = useState([])
-  const [nameSearchLoading, setNameSearchLoading] = useState(false)
   const scannerRef = useRef(null)
 
-  // OCR Mode States
+  // --- AI VISION & OCR MODE STATE ---
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null)
   const [ocrProgress, setOcrProgress] = useState(0)
@@ -141,24 +214,143 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrRawText, setOcrRawText] = useState('')
   const [ocrError, setOcrError] = useState('')
+  const [ocrSuccessMsg, setOcrSuccessMsg] = useState('')
+  const [showApiKeyDrawer, setShowApiKeyDrawer] = useState(false)
+  const [customApiKeyInput, setCustomApiKeyInput] = useState(() => getGeminiApiKey())
+  const [keySavedToast, setKeySavedToast] = useState(false)
   const fileInputRef = useRef(null)
 
+  // Reset selected image when closing
   useEffect(() => {
-    if (initialQuery) {
-      setFoodData(prev => ({ ...prev, name: initialQuery }))
+    if (!isOpen) {
+      setSelectedWholeFood(null)
+      setSelectedImage(null)
+      setImagePreviewUrl(null)
+      setOcrError('')
+      setOcrSuccessMsg('')
+      stopCameraScanner()
     }
-  }, [initialQuery])
+  }, [isOpen])
 
-  // Stop camera when modal closes or mode changes
+  // Stop camera when unmounting
   useEffect(() => {
     return () => {
       stopCameraScanner()
     }
   }, [activeMode, isOpen])
 
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        stopCameraScanner()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow || 'unset'
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
-  // --- MANUAL HANDLERS ---
+  // --- HANDLERS FOR LOGGING & FORM SUBMISSION ---
+  const handleLogScaledWholeFood = () => {
+    if (!scaledWholeFood) return
+    const newFood = {
+      id: 'wf_' + Date.now(),
+      name: scaledWholeFood.name,
+      category: scaledWholeFood.category || 'Carbs',
+      serving: scaledWholeFood.serving,
+      calories: Math.round(scaledWholeFood.calories),
+      protein: scaledWholeFood.protein,
+      carbs: scaledWholeFood.carbs,
+      fat: scaledWholeFood.fat,
+      source: 'whole_food',
+      micros: scaledWholeFood.micros || {},
+      cautions: scaledWholeFood.cautions || {}
+    }
+    onSave(newFood)
+    onClose()
+  }
+
+  const handleCustomizeWholeFood = () => {
+    if (!scaledWholeFood) return
+    setFoodData({
+      name: scaledWholeFood.name,
+      category: scaledWholeFood.category || 'Carbs',
+      serving: scaledWholeFood.serving,
+      calories: String(scaledWholeFood.calories),
+      protein: String(scaledWholeFood.protein),
+      carbs: String(scaledWholeFood.carbs),
+      fat: String(scaledWholeFood.fat),
+      source: 'whole_food',
+      barcode: '',
+      imageUrl: '',
+      micros: {
+        vit_d: scaledWholeFood.micros?.vit_d || '',
+        vit_b12: scaledWholeFood.micros?.vit_b12 || '',
+        vit_c: scaledWholeFood.micros?.vit_c || '',
+        vit_a: scaledWholeFood.micros?.vit_a || '',
+        magnesium: scaledWholeFood.micros?.magnesium || '',
+        zinc: scaledWholeFood.micros?.zinc || '',
+        iron: scaledWholeFood.micros?.iron || '',
+        calcium: scaledWholeFood.micros?.calcium || '',
+        potassium: scaledWholeFood.micros?.potassium || '',
+        omega_3: scaledWholeFood.micros?.omega_3 || ''
+      },
+      cautions: {
+        transFat: scaledWholeFood.cautions?.transFat ?? '',
+        cholesterol: scaledWholeFood.cautions?.cholesterol ?? '',
+        sodium: scaledWholeFood.cautions?.sodium ?? '',
+        saturatedFat: scaledWholeFood.cautions?.saturatedFat ?? '',
+        addedSugar: scaledWholeFood.cautions?.addedSugar ?? ''
+      }
+    })
+    setShowMicros(true)
+    setActiveMode('manual')
+  }
+
+  const handleSelectPackagedFood = (pkg) => {
+    setFoodData({
+      name: pkg.name,
+      category: 'Snacks & Pantry',
+      serving: pkg.serving || '100g',
+      calories: String(pkg.calories || 0),
+      protein: String(pkg.protein || 0),
+      carbs: String(pkg.carbs || 0),
+      fat: String(pkg.fat || 0),
+      source: 'open_food_facts',
+      barcode: pkg.barcode || '',
+      imageUrl: pkg.imageUrl || '',
+      micros: {
+        vit_d: '',
+        vit_b12: '',
+        vit_c: '',
+        vit_a: '',
+        magnesium: '',
+        zinc: '',
+        iron: '',
+        calcium: '',
+        potassium: '',
+        omega_3: ''
+      },
+      cautions: {
+        transFat: '',
+        cholesterol: '',
+        sodium: '',
+        saturatedFat: '',
+        addedSugar: ''
+      }
+    })
+    setActiveMode('manual')
+  }
+
   const handleMicroChange = (key, val) => {
     setFoodData(prev => ({
       ...prev,
@@ -173,7 +365,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleManualSubmit = (e) => {
     e.preventDefault()
     if (!foodData.name.trim()) return
 
@@ -214,7 +406,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     onClose()
   }
 
-  // --- BARCODE HANDLERS ---
+  // --- BARCODE LOOKUP ---
   const handleBarcodeLookup = async (codeToLookup) => {
     const code = (codeToLookup || barcodeInput).trim()
     if (!code) {
@@ -270,7 +462,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
       if (res.cautions && Object.values(res.cautions).some(v => parseFloat(v) > 0)) {
         setShowCautions(true)
       }
-      setActiveMode('manual') // switch to review populated data
+      setActiveMode('manual')
     } catch (err) {
       setBarcodeError(err.message || 'Product could not be retrieved from the database.')
     } finally {
@@ -294,9 +486,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               setBarcodeInput(decodedText)
               handleBarcodeLookup(decodedText)
             },
-            (err) => {
-              // Scanner scanning frame callback, ignore frame noise
-            }
+            () => {}
           ).catch((err) => {
             setBarcodeError('Camera access failed: ' + (err.message || 'Check browser permissions'))
             setCameraActive(false)
@@ -324,20 +514,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setCameraActive(false)
   }
 
-  const handleNameSearch = async (query) => {
-    if (!query || query.length < 2) return
-    setNameSearchLoading(true)
-    try {
-      const results = await searchProductsByName(query)
-      setNameSearchResults(results)
-    } catch (_) {
-      setNameSearchResults([])
-    } finally {
-      setNameSearchLoading(false)
-    }
-  }
-
-  // --- OCR / PHOTO HANDLERS ---
+  // --- GEMINI AI VISION & OCR HANDLERS ---
   const handleImageFileChange = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -346,9 +523,17 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     setImagePreviewUrl(previewUrl)
     setOcrRawText('')
     setOcrError('')
+    setOcrSuccessMsg('')
   }
 
-  const handleRunOcr = async () => {
+  const handleSaveApiKey = () => {
+    setGeminiApiKey(customApiKeyInput)
+    setKeySavedToast(true)
+    setTimeout(() => setKeySavedToast(false), 3000)
+    setShowApiKeyDrawer(false)
+  }
+
+  const handleRunAiVision = async () => {
     if (!selectedImage && !imagePreviewUrl) {
       setOcrError('Please select or upload a nutrition label photo first.')
       return
@@ -356,59 +541,86 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
 
     setOcrLoading(true)
     setOcrError('')
-    setOcrProgress(10)
-    setOcrStatusText('Loading OCR engine…')
+    setOcrSuccessMsg('')
+    setOcrStatusText('Analyzing image with Gemini Flash Vision...')
+    setOcrProgress(30)
 
     try {
-      const { default: Tesseract } = await import('tesseract.js')
-      const res = await Tesseract.recognize(
-        selectedImage || imagePreviewUrl,
-        'eng',
-        {
-          logger: (m) => {
-            if (m.status === 'recognizing text') {
-              setOcrStatusText('Recognizing text: ' + Math.round((m.progress || 0) * 100) + '%')
-              setOcrProgress(Math.round((m.progress || 0) * 100))
-            } else {
-              setOcrStatusText(m.status)
+      // 1. Try Gemini AI Vision first
+      const parsed = await parseNutritionLabelWithGemini(selectedImage || imagePreviewUrl)
+      setOcrProgress(100)
+      setOcrSuccessMsg('Label analyzed successfully via Gemini Vision!')
+      applyParsedDataToForm(parsed, 'gemini_vision')
+    } catch (aiErr) {
+      console.warn('Gemini Vision error, evaluating fallback:', aiErr)
+
+      // If user has not set an API key or API key was invalid, inform them with fallback option
+      if (aiErr.code === 'NO_API_KEY') {
+        setOcrError('No Gemini API key found. Add your free key in the settings drawer below, or use the local OCR fallback.')
+      } else {
+        setOcrError(`AI Vision Notice: ${aiErr.message}. You can retry or use the local OCR parser.`)
+      }
+
+      // Automatically fallback to local Tesseract OCR if requested
+      try {
+        setOcrStatusText('Running local OCR fallback engine...')
+        setOcrProgress(50)
+        const { default: Tesseract } = await import('tesseract.js')
+        const res = await Tesseract.recognize(
+          selectedImage || imagePreviewUrl,
+          'eng',
+          {
+            logger: (m) => {
+              if (m.status === 'recognizing text') {
+                setOcrStatusText('Recognizing text: ' + Math.round((m.progress || 0) * 100) + '%')
+                setOcrProgress(Math.round((m.progress || 0) * 100))
+              }
             }
           }
-        }
-      )
-
-      const text = res.data?.text || ''
-      setOcrRawText(text)
-      applyParsedOcrText(text, 'Photo Scanned Product')
-    } catch (_) {
-      setOcrError('OCR recognition failed. You can also paste text directly or choose a sample label.')
+        )
+        const text = res.data?.text || ''
+        setOcrRawText(text)
+        const fallbackParsed = parseNutritionText(text)
+        applyParsedDataToForm({
+          name: 'Photo Scanned Product',
+          serving: fallbackParsed.serving || '100g',
+          calories: fallbackParsed.calories,
+          protein: fallbackParsed.protein,
+          carbs: fallbackParsed.carbs,
+          fat: fallbackParsed.fat,
+          micros: fallbackParsed.micros,
+          cautions: fallbackParsed.cautions
+        }, 'ocr_fallback')
+      } catch (tessErr) {
+        setOcrError('Both AI Vision and local OCR could not read this image. Please enter macros manually or paste label text below.')
+      }
     } finally {
       setOcrLoading(false)
     }
   }
 
-  const applyParsedOcrText = (text, defaultName = 'Nutrition Label Item') => {
-    const parsed = parseNutritionText(text)
+  const applyParsedDataToForm = (parsed, source = 'gemini_vision') => {
     setFoodData(prev => ({
       ...prev,
-      name: prev.name || defaultName,
+      name: parsed.name || prev.name || 'Scanned Food Product',
       serving: parsed.serving || '100g',
       calories: parsed.calories || '',
       protein: parsed.protein || '',
       carbs: parsed.carbs || '',
       fat: parsed.fat || '',
-      source: 'ocr_label',
+      source,
       imageUrl: imagePreviewUrl || '',
       micros: {
-        vit_d: parsed.micros.vit_d || '',
-        vit_b12: parsed.micros.vit_b12 || '',
-        vit_c: parsed.micros.vit_c || '',
-        vit_a: parsed.micros.vit_a || '',
-        magnesium: parsed.micros.magnesium || '',
-        zinc: parsed.micros.zinc || '',
-        iron: parsed.micros.iron || '',
-        calcium: parsed.micros.calcium || '',
-        potassium: parsed.micros.potassium || '',
-        omega_3: parsed.micros.omega_3 || ''
+        vit_d: parsed.micros?.vit_d || '',
+        vit_b12: parsed.micros?.vit_b12 || '',
+        vit_c: parsed.micros?.vit_c || '',
+        vit_a: parsed.micros?.vit_a || '',
+        magnesium: parsed.micros?.magnesium || '',
+        zinc: parsed.micros?.zinc || '',
+        iron: parsed.micros?.iron || '',
+        calcium: parsed.micros?.calcium || '',
+        potassium: parsed.micros?.potassium || '',
+        omega_3: parsed.micros?.omega_3 || ''
       },
       cautions: {
         transFat: parsed.cautions?.transFat ?? '',
@@ -420,39 +632,25 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
     }))
 
     setDetectedFields({
-      ...parsed.rawExtracted
+      calories: true,
+      protein: true,
+      carbs: true,
+      fat: true,
+      ...(parsed.micros || {}),
+      ...(parsed.cautions || {})
     })
 
-    if (Object.values(parsed.micros).some(v => v > 0)) {
+    if (parsed.micros && Object.values(parsed.micros).some(v => parseFloat(v) > 0)) {
       setShowMicros(true)
     }
-
     if (parsed.cautions && Object.values(parsed.cautions).some(v => parseFloat(v) > 0)) {
       setShowCautions(true)
     }
 
-    setActiveMode('manual') // switch to review populated data
+    setActiveMode('manual')
   }
 
-  // Close on Escape key and lock body scroll
-  useEffect(() => {
-    if (!isOpen) return
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        stopCameraScanner()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.body.style.overflow = prevOverflow || 'unset'
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
+  const hasApiKey = Boolean(getGeminiApiKey())
 
   return createPortal(
     <div 
@@ -466,30 +664,33 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         onClick={(e) => e.stopPropagation()}
         className="modal-card" 
         style={{
-          maxWidth: '820px'
+          maxWidth: '860px',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column'
         }}
       >
         {/* Modal Header */}
-        <div className="modal-header">
+        <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
+              width: '42px',
+              height: '42px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+              background: 'linear-gradient(135deg, var(--primary) 0%, #059669 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 14px var(--primary-glow)'
             }}>
-              <Sparkles size={20} color="#fff" aria-hidden="true" />
+              <Sparkles size={22} color="#fff" aria-hidden="true" />
             </div>
             <div>
-              <h3 id="add-food-modal-title" style={{ fontSize: '1.28rem', fontWeight: '800', color: '#fff' }}>
-                Add Item to Food Database
+              <h3 id="add-food-modal-title" style={{ fontSize: '1.24rem', fontWeight: '800', color: '#fff', margin: 0 }}>
+                Log Food & Nutrition
               </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Add items via Manual Entry, Barcode Scan, or Nutrition Label Photo (OCR)
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                Instant Whole Foods Search • Smart Portions • Barcode • Gemini AI Label Scanner
               </p>
             </div>
           </div>
@@ -498,35 +699,36 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
             type="button"
             onClick={() => { stopCameraScanner(); onClose(); }} 
             className="modal-close-btn"
-            aria-label="Close add food dialog"
+            aria-label="Close dialog"
           >
             <X size={20} aria-hidden="true" />
           </button>
         </div>
 
-        {/* High-Contrast Tab Selection: Manual | Barcode | Photo OCR */}
+        {/* 4 Navigation Tabs */}
         <div style={{
           display: 'flex',
           background: '#0d1527',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: '10px 14px',
+          padding: '8px 14px',
           gap: '8px',
           flexShrink: 0,
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch'
         }}>
+          {/* Tab 1: Whole Foods & Search */}
           <button
             type="button"
-            onClick={() => { stopCameraScanner(); setActiveMode('manual'); }}
+            onClick={() => { stopCameraScanner(); setActiveMode('search'); }}
             style={{
               flex: '1 1 auto',
-              padding: '10px 12px',
+              padding: '10px 14px',
               minHeight: '44px',
               borderRadius: 'var(--radius-md)',
-              border: activeMode === 'manual' ? '1px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: activeMode === 'manual' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-              color: activeMode === 'manual' ? '#34d399' : '#94a3b8',
-              fontWeight: activeMode === 'manual' ? '700' : '600',
+              border: activeMode === 'search' ? '1px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeMode === 'search' ? 'rgba(16, 185, 129, 0.22)' : 'rgba(255, 255, 255, 0.03)',
+              color: activeMode === 'search' ? '#34d399' : '#94a3b8',
+              fontWeight: activeMode === 'search' ? '700' : '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -537,20 +739,21 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               whiteSpace: 'nowrap'
             }}
           >
-            <FileText size={16} />
-            <span>1. Manual</span>
+            <Search size={16} />
+            <span>1. Search & Whole Foods</span>
           </button>
 
+          {/* Tab 2: Barcode */}
           <button
             type="button"
-            onClick={() => setActiveMode('barcode')}
+            onClick={() => { stopCameraScanner(); setActiveMode('barcode'); }}
             style={{
               flex: '1 1 auto',
-              padding: '10px 12px',
+              padding: '10px 14px',
               minHeight: '44px',
               borderRadius: 'var(--radius-md)',
               border: activeMode === 'barcode' ? '1px solid var(--accent-blue)' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: activeMode === 'barcode' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              background: activeMode === 'barcode' ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255, 255, 255, 0.03)',
               color: activeMode === 'barcode' ? '#38bdf8' : '#94a3b8',
               fontWeight: activeMode === 'barcode' ? '700' : '600',
               cursor: 'pointer',
@@ -567,16 +770,17 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
             <span>2. Barcode</span>
           </button>
 
+          {/* Tab 3: AI Label Vision */}
           <button
             type="button"
             onClick={() => { stopCameraScanner(); setActiveMode('ocr'); }}
             style={{
               flex: '1 1 auto',
-              padding: '10px 12px',
+              padding: '10px 14px',
               minHeight: '44px',
               borderRadius: 'var(--radius-md)',
               border: activeMode === 'ocr' ? '1px solid var(--accent-purple)' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: activeMode === 'ocr' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              background: activeMode === 'ocr' ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255, 255, 255, 0.03)',
               color: activeMode === 'ocr' ? '#c084fc' : '#94a3b8',
               fontWeight: activeMode === 'ocr' ? '700' : '600',
               cursor: 'pointer',
@@ -590,14 +794,454 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
             }}
           >
             <Camera size={16} />
-            <span>3. Label OCR</span>
+            <span>3. AI Label Scanner</span>
+          </button>
+
+          {/* Tab 4: Manual Form */}
+          <button
+            type="button"
+            onClick={() => { stopCameraScanner(); setActiveMode('manual'); }}
+            style={{
+              flex: '1 1 auto',
+              padding: '10px 14px',
+              minHeight: '44px',
+              borderRadius: 'var(--radius-md)',
+              border: activeMode === 'manual' ? '1px solid #64748b' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeMode === 'manual' ? 'rgba(100, 116, 139, 0.22)' : 'rgba(255, 255, 255, 0.03)',
+              color: activeMode === 'manual' ? '#f1f5f9' : '#94a3b8',
+              fontWeight: activeMode === 'manual' ? '700' : '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              fontSize: '0.86rem',
+              transition: 'var(--transition)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <FileText size={16} />
+            <span>4. Manual / Review</span>
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="modal-body">
-          
-          {/* ===================== MODE 2: BARCODE SCANNER & LOOKUP ===================== */}
+        <div className="modal-body" style={{ flex: '1 1 auto', overflowY: 'auto', padding: '20px' }}>
+
+          {/* ========================================================================= */}
+          {/* ===================== MODE 1: SEARCH & WHOLE FOODS ====================== */}
+          {/* ========================================================================= */}
+          {activeMode === 'search' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Search Bar */}
+              <div style={{ position: 'relative' }}>
+                <Search 
+                  size={18} 
+                  style={{ position: 'absolute', left: '14px', top: '15px', color: 'var(--primary-light)' }} 
+                />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type any food: Banana, Apple, Chicken Breast, Eggs, Rice, Yogurt... (English or Hebrew)"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setSelectedWholeFood(null)
+                  }}
+                  className="input-field"
+                  style={{
+                    paddingLeft: '44px',
+                    paddingRight: searchQuery ? '40px' : '14px',
+                    fontSize: '1.02rem',
+                    height: '48px',
+                    borderColor: 'var(--primary)',
+                    background: 'rgba(15, 23, 42, 0.85)'
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setSelectedWholeFood(null)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '12px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '4px'
+                    }}
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+
+              {/* ACTIVE SELECTION: PORTION SELECTOR & DYNAMIC MACRO CALCULATOR */}
+              {selectedWholeFood && scaledWholeFood && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.2) 100%)',
+                  border: '1.5px solid var(--primary)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  animation: 'fadeIn 0.2s ease-in-out'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '2rem' }}>{selectedWholeFood.icon || '🌿'}</span>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <h4 style={{ fontSize: '1.18rem', fontWeight: '800', color: '#fff', margin: 0 }}>
+                            {selectedWholeFood.name}
+                          </h4>
+                          <span className="badge badge-green">Verified Whole Food</span>
+                        </div>
+                        {selectedWholeFood.hebrewName && (
+                          <div style={{ fontSize: '0.84rem', color: 'var(--primary-light)', marginTop: '2px' }}>
+                            {selectedWholeFood.hebrewName}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWholeFood(null)}
+                      className="btn-ghost btn-sm"
+                      style={{ color: 'var(--text-muted)', padding: '4px 8px' }}
+                    >
+                      Change Item
+                    </button>
+                  </div>
+
+                  {/* Predefined Portion Chips */}
+                  {selectedWholeFood.portions && selectedWholeFood.portions.length > 0 && (
+                    <div>
+                      <label className="input-label" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Sliders size={14} color="var(--primary-light)" />
+                        <span>Select Standard Portion:</span>
+                      </label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {selectedWholeFood.portions.map((portion, idx) => {
+                          const isSelected = selectedGrams === portion.grams
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setSelectedGrams(portion.grams)}
+                              style={{
+                                padding: '8px 14px',
+                                borderRadius: '20px',
+                                fontSize: '0.82rem',
+                                fontWeight: isSelected ? '700' : '500',
+                                background: isSelected ? 'var(--primary)' : 'rgba(255, 255, 255, 0.05)',
+                                color: isSelected ? '#041f14' : 'var(--text-main)',
+                                border: isSelected ? '1px solid var(--primary)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {portion.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Weight Slider & Exact Gram Input */}
+                  <div style={{
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    padding: '14px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className="input-label" style={{ margin: 0 }}>Fine-Tune Exact Weight (Grams):</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="2000"
+                          value={selectedGrams}
+                          onChange={(e) => setSelectedGrams(Math.max(1, parseInt(e.target.value) || 0))}
+                          className="input-field"
+                          style={{
+                            width: '90px',
+                            textAlign: 'center',
+                            fontSize: '1rem',
+                            fontWeight: '700',
+                            padding: '6px'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>grams</span>
+                      </div>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="10"
+                      max="400"
+                      step="5"
+                      value={selectedGrams > 400 ? 400 : selectedGrams}
+                      onChange={(e) => setSelectedGrams(parseInt(e.target.value))}
+                      style={{
+                        width: '100%',
+                        accentColor: 'var(--primary)',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+
+                  {/* Dynamic Macro & Micro Breakdown Card */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '10px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '10px', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Calories</div>
+                      <div style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--primary-light)' }}>
+                        {scaledWholeFood.calories} <span style={{ fontSize: '0.75rem' }}>kcal</span>
+                      </div>
+                    </div>
+                    <div style={{ background: 'rgba(56, 189, 248, 0.12)', padding: '10px', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', textTransform: 'uppercase' }}>Protein</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff' }}>
+                        {scaledWholeFood.protein}g
+                      </div>
+                    </div>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.12)', padding: '10px', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--accent-yellow)', textTransform: 'uppercase' }}>Carbs</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff' }}>
+                        {scaledWholeFood.carbs}g
+                      </div>
+                    </div>
+                    <div style={{ background: 'rgba(244, 63, 94, 0.12)', padding: '10px', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--accent-red)', textTransform: 'uppercase' }}>Fat</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff' }}>
+                        {scaledWholeFood.fat}g
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Micronutrients Strip */}
+                  {scaledWholeFood.micros && (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <span>Fiber: <strong style={{ color: '#fff' }}>{scaledWholeFood.fiber || 0}g</strong></span>
+                      {scaledWholeFood.micros.potassium > 0 && (
+                        <span>Potassium: <strong style={{ color: '#fff' }}>{scaledWholeFood.micros.potassium}mg</strong></span>
+                      )}
+                      {scaledWholeFood.micros.vit_c > 0 && (
+                        <span>Vit C: <strong style={{ color: '#fff' }}>{scaledWholeFood.micros.vit_c}mg</strong></span>
+                      )}
+                      {scaledWholeFood.micros.magnesium > 0 && (
+                        <span>Magnesium: <strong style={{ color: '#fff' }}>{scaledWholeFood.micros.magnesium}mg</strong></span>
+                      )}
+                      {scaledWholeFood.micros.calcium > 0 && (
+                        <span>Calcium: <strong style={{ color: '#fff' }}>{scaledWholeFood.micros.calcium}mg</strong></span>
+                      )}
+                      {scaledWholeFood.micros.iron > 0 && (
+                        <span>Iron: <strong style={{ color: '#fff' }}>{scaledWholeFood.micros.iron}mg</strong></span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action Buttons for this item */}
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={handleLogScaledWholeFood}
+                      className="btn btn-primary"
+                      style={{
+                        flex: 2,
+                        padding: '12px 20px',
+                        fontSize: '0.96rem',
+                        fontWeight: '700',
+                        boxShadow: '0 4px 14px var(--primary-glow)'
+                      }}
+                    >
+                      <Check size={18} />
+                      <span>Log {scaledWholeFood.name} ({scaledWholeFood.serving})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCustomizeWholeFood}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, fontSize: '0.84rem' }}
+                    >
+                      <span>Customize All</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* LIST OF VERIFIED WHOLE FOODS */}
+              <div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.1rem' }}>🌿</span>
+                    <span style={{ fontWeight: '700', fontSize: '0.92rem', color: '#fff' }}>
+                      {searchQuery ? `Verified Whole Foods (${wholeFoodResults.length})` : 'Popular Everyday Whole Foods (1-Tap):'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--primary-light)' }}>
+                    USDA Verified • No Barcode Needed
+                  </span>
+                </div>
+
+                {wholeFoodResults.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No whole foods matched "{searchQuery}". See packaged results below or switch to manual.
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                    gap: '10px'
+                  }}>
+                    {wholeFoodResults.map((item) => {
+                      const defPortion = item.portions?.find(p => p.isDefault) || item.portions?.[0]
+                      const defGrams = defPortion ? defPortion.grams : 100
+                      const defCal = Math.round((item.per100g.calories * defGrams) / 100)
+                      const isChosen = selectedWholeFood?.id === item.id
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleSelectWholeFood(item)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            background: isChosen ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                            border: isChosen ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            transition: 'var(--transition)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                            <span style={{ fontSize: '1.5rem' }}>{item.icon || '🌿'}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {item.name}
+                              </div>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                                {defPortion ? defPortion.label : '100g'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                            <div style={{ fontWeight: '800', fontSize: '0.92rem', color: 'var(--primary-light)' }}>
+                              {defCal} cal
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                              {Math.round((item.per100g.protein * defGrams) / 10) / 10}g P
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* LIST OF PACKAGED PRODUCTS FROM OPEN FOOD FACTS */}
+              {searchQuery.trim().length >= 2 && (
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '8px' }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>📦</span>
+                      <span style={{ fontWeight: '700', fontSize: '0.92rem', color: '#fff' }}>
+                        Packaged & Branded Products (Open Food Facts):
+                      </span>
+                    </div>
+                    {isSearchingPackaged && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>Searching global database...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {packagedResults.length === 0 && !isSearchingPackaged ? (
+                    <div style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      No branded items found for "{searchQuery}".
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {packagedResults.map((item, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSelectPackagedFood(item)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 14px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            transition: 'var(--transition)'
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: '600', fontSize: '0.88rem', color: '#fff', wordBreak: 'break-word' }}>
+                              {item.name}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              {item.serving} • <span style={{ color: 'var(--accent-blue)' }}>{item.protein}g P</span> | <span style={{ color: 'var(--accent-yellow)' }}>{item.carbs}g C</span> | <span style={{ color: 'var(--accent-red)' }}>{item.fat}g F</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                            <span style={{ fontWeight: '700', fontSize: '0.92rem', color: 'var(--accent-blue)' }}>
+                              {item.calories} cal
+                            </span>
+                            <span className="badge badge-blue" style={{ fontSize: '0.72rem' }}>
+                              Select
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* ===================== MODE 2: BARCODE SCANNER =========================== */}
+          {/* ========================================================================= */}
           {activeMode === 'barcode' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div style={{
@@ -613,9 +1257,9 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               }}>
                 <Barcode size={24} color="var(--accent-blue)" />
                 <div>
-                  <strong>Scan with Camera or Enter Barcode Number:</strong>
+                  <strong>Scan Barcode with Camera or Enter Number:</strong>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                    Automatically retrieves product name, brand, calories, macros, and micronutrients from Open Food Facts.
+                    Queries Open Food Facts for Israeli and international packaged goods.
                   </div>
                 </div>
               </div>
@@ -624,11 +1268,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <input
                   type="text"
-                  id="barcode-input-field"
-                  name="barcodeQuery"
-                  autoComplete="off"
-                  aria-label="Enter or paste barcode number"
-                  placeholder="Enter or paste barcode (e.g. 5449000000996, 737628064502)…"
+                  placeholder="Enter or paste barcode (e.g. 5449000000996, 7290000045231)…"
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleBarcodeLookup()}
@@ -640,7 +1280,6 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   disabled={barcodeLoading || !barcodeInput.trim()}
                   onClick={() => handleBarcodeLookup()}
                   className="btn btn-primary"
-                  aria-label="Search product by barcode"
                   style={{ flex: '1 1 auto', whiteSpace: 'nowrap', minHeight: '44px' }}
                 >
                   {barcodeLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
@@ -716,120 +1355,120 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   ))}
                 </div>
               </div>
-
-              {/* Name Search fallback in OpenFoodFacts */}
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  Don't have a barcode? Search product by name in Open Food Facts:
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input
-                    type="text"
-                    id="name-search-input"
-                    name="productNameSearch"
-                    autoComplete="off"
-                    aria-label="Search product by name"
-                    placeholder="e.g. Greek yogurt, tuna in water, peanut butter…"
-                    className="input-field"
-                    style={{ flex: 1 }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleNameSearch(e.target.value)
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const val = document.getElementById('name-search-input')?.value
-                      handleNameSearch(val)
-                    }}
-                    className="btn btn-secondary"
-                    aria-label="Search Open Food Facts database by product name"
-                  >
-                    {nameSearchLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                    <span>Search</span>
-                  </button>
-                </div>
-
-                {nameSearchResults.length > 0 && (
-                  <div style={{
-                    marginTop: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    maxHeight: '200px',
-                    overflowY: 'auto'
-                  }}>
-                    {nameSearchResults.map((prod, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          if (prod.barcode) {
-                            handleBarcodeLookup(prod.barcode)
-                          } else {
-                            setFoodData(prev => ({
-                              ...prev,
-                              name: prod.name,
-                              calories: prod.calories,
-                              protein: prod.protein,
-                              carbs: prod.carbs,
-                              fat: prod.fat,
-                              serving: prod.serving,
-                              source: 'barcode'
-                            }))
-                            setActiveMode('manual')
-                          }
-                        }}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '10px 14px',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          transition: 'var(--transition)'
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: '600', fontSize: '0.88rem' }}>{prod.name}</div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            {prod.calories} kcal | P: {prod.protein}g | C: {prod.carbs}g | F: {prod.fat}g (per {prod.serving})
-                          </div>
-                        </div>
-                        <span className="badge badge-blue">Select Product</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
-          {/* ===================== MODE 3: NUTRITION LABEL PHOTO OCR ===================== */}
+          {/* ========================================================================= */}
+          {/* ===================== MODE 3: GEMINI AI LABEL SCANNER =================== */}
+          {/* ========================================================================= */}
           {activeMode === 'ocr' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Header Banner */}
               <div style={{
-                background: 'rgba(168, 85, 247, 0.08)',
-                border: '1px solid rgba(168, 85, 247, 0.2)',
+                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(126, 34, 206, 0.18) 100%)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
                 borderRadius: 'var(--radius-md)',
                 padding: '14px 18px',
                 fontSize: '0.85rem',
                 color: 'var(--text-main)',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
                 gap: '12px'
               }}>
-                <Camera size={24} color="var(--accent-purple)" />
-                <div>
-                  <strong>Photo or Image Upload of Nutrition Facts Label:</strong>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                    Intelligently scans calories, protein, carbohydrates, fats, and micronutrients from packaging.
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'rgba(168, 85, 247, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Camera size={20} color="#c084fc" />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ color: '#fff' }}>Gemini Flash Vision Label Scanner</strong>
+                      <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>Bilingual AI</span>
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.76rem', marginTop: '2px' }}>
+                      Snap a photo of the back-of-pack Nutrition Facts table (Hebrew סימון תזונתי or English).
+                    </div>
                   </div>
                 </div>
+
+                {/* API Key Status / Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowApiKeyDrawer(!showApiKeyDrawer)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Key size={13} color={hasApiKey ? '#34d399' : '#f59e0b'} />
+                  <span>{hasApiKey ? 'AI Key Active ✓' : 'Setup Gemini Key'}</span>
+                </button>
               </div>
 
-              {/* Upload Drop Zone */}
+              {/* API Key Configuration Drawer */}
+              {showApiKeyDrawer && (
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="input-label" style={{ color: '#c084fc', margin: 0 }}>
+                      Google Gemini API Key (Stored securely in your browser):
+                    </label>
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      rel="noreferrer"
+                      style={{ fontSize: '0.74rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      Get Free Gemini Key <ExternalLink size={11} />
+                    </a>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="password"
+                      placeholder="Paste your Gemini API key (AIzaSy...)"
+                      value={customApiKeyInput}
+                      onChange={(e) => setCustomApiKeyInput(e.target.value)}
+                      className="input-field"
+                      style={{ flex: 1, fontSize: '0.88rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveApiKey}
+                      className="btn btn-primary btn-sm"
+                      style={{ minWidth: '90px' }}
+                    >
+                      Save Key
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Tip: You can also set <code>VITE_GEMINI_API_KEY</code> in your project's <code>.env</code> file.
+                  </div>
+                </div>
+              )}
+
+              {keySavedToast && (
+                <div style={{ color: '#34d399', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={15} /> Key saved! Ready for high-precision label scanning.
+                </div>
+              )}
+
+              {/* Photo Upload / Camera Snap Zone */}
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 style={{
@@ -861,68 +1500,86 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                       src={imagePreviewUrl} 
                       alt="Label preview" 
                       style={{ 
-                        maxHeight: '160px', 
+                        maxHeight: '180px', 
                         borderRadius: 'var(--radius-sm)', 
                         border: '1px solid var(--border-color)',
                         objectFit: 'contain'
                       }} 
                     />
                     <div style={{ fontSize: '0.82rem', color: 'var(--accent-purple)', fontWeight: '600' }}>
-                      ✓ Image loaded! Click here to replace
+                      ✓ Image loaded! Tap to replace or click Scan below
                     </div>
                   </div>
                 ) : (
                   <>
                     <div style={{
-                      width: '50px',
-                      height: '50px',
+                      width: '54px',
+                      height: '54px',
                       borderRadius: '50%',
                       background: 'rgba(168, 85, 247, 0.15)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <Upload size={24} color="#c084fc" />
+                      <Upload size={26} color="#c084fc" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: '700', fontSize: '1rem', color: '#f8fafc' }}>
-                        Drag & drop image or click to upload / capture photo
+                      <div style={{ fontWeight: '700', fontSize: '1.02rem', color: '#f8fafc' }}>
+                        Snap or Upload Back-of-Product Nutrition Label
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Supports JPG, PNG, WebP of the nutrition facts label
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Supports camera capture, photo library, JPG, PNG & WebP
                       </div>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Action: Run OCR */}
+              {/* Action Button: Run Scan */}
               {imagePreviewUrl && (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <button
                     type="button"
                     disabled={ocrLoading}
-                    onClick={handleRunOcr}
+                    onClick={handleRunAiVision}
                     className="btn btn-primary"
                     style={{
                       background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
                       boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)',
-                      padding: '12px 28px',
-                      fontSize: '1rem'
+                      padding: '12px 32px',
+                      fontSize: '1rem',
+                      fontWeight: '700'
                     }}
                   >
                     {ocrLoading ? (
                       <>
                         <Loader2 size={18} className="animate-spin" />
-                        <span>{ocrStatusText || 'Analyzing image...'} ({ocrProgress}%)</span>
+                        <span>{ocrStatusText} ({ocrProgress}%)</span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={18} />
-                        <span>Run OCR Recognition & Extraction</span>
+                        <span>Extract Nutrition with Gemini AI</span>
                       </>
                     )}
                   </button>
+                </div>
+              )}
+
+              {ocrSuccessMsg && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--primary-light)',
+                  fontSize: '0.84rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <CheckCircle2 size={16} />
+                  <span>{ocrSuccessMsg}</span>
                 </div>
               )}
 
@@ -939,10 +1596,10 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 </div>
               )}
 
-              {/* Ready Sample Label Templates for 1-click test */}
+              {/* Test Label Templates */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                 <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>
-                  Or test extraction instantly on sample nutrition labels:
+                  Or test extraction instantly using pre-made label templates:
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {SAMPLE_OCR_TEMPLATES.map((tmpl, idx) => (
@@ -961,14 +1618,23 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: '600', fontSize: '0.88rem' }}>{tmpl.title}</div>
+                        <div style={{ fontWeight: '600', fontSize: '0.88rem', color: '#fff' }}>{tmpl.title}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{tmpl.desc}</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => {
-                          setFoodData(prev => ({ ...prev, name: tmpl.name, category: tmpl.category }))
-                          applyParsedOcrText(tmpl.text, tmpl.name)
+                          const parsed = parseNutritionText(tmpl.text)
+                          applyParsedDataToForm({
+                            name: tmpl.name,
+                            serving: parsed.serving || '100g',
+                            calories: parsed.calories,
+                            protein: parsed.protein,
+                            carbs: parsed.carbs,
+                            fat: parsed.fat,
+                            micros: parsed.micros,
+                            cautions: parsed.cautions
+                          }, 'template_test')
                         }}
                         className="btn btn-secondary btn-sm"
                         style={{ color: 'var(--accent-purple)' }}
@@ -980,46 +1646,49 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 </div>
               </div>
 
-              {/* Raw OCR text view / paste area */}
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label className="input-label">Or paste scanned text directly (from mobile camera / lens):</label>
-                  {ocrRawText && (
-                    <button
-                      type="button"
-                      onClick={() => applyParsedOcrText(ocrRawText)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--primary-light)', padding: 0 }}
-                    >
-                      Re-parse
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  rows="3"
-                  className="input-field"
-                  placeholder="Paste label lines here (e.g. Calories 150, Protein 12g, Carbohydrates 20g...)"
-                  value={ocrRawText}
-                  onChange={(e) => setOcrRawText(e.target.value)}
-                />
-                {ocrRawText && (
-                  <button
-                    type="button"
-                    onClick={() => applyParsedOcrText(ocrRawText)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ marginTop: '8px' }}
-                  >
-                    <ArrowRight size={14} /> Extract Nutrition Values
-                  </button>
-                )}
-              </div>
             </div>
           )}
 
-          {/* ===================== MODE 1: FORM REVIEW & MANUAL ENTRY ===================== */}
+          {/* ========================================================================= */}
+          {/* ===================== MODE 4: MANUAL ENTRY & REVIEW ===================== */}
+          {/* ========================================================================= */}
           {activeMode === 'manual' && (
-            <form id="food-entry-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form id="food-entry-form" onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
+              {foodData.source === 'whole_food' && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.82rem',
+                  color: 'var(--primary-light)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <CheckCircle2 size={16} />
+                  <span>Whole food scaled values loaded! You can make any manual adjustments before saving.</span>
+                </div>
+              )}
+
+              {foodData.source === 'gemini_vision' && (
+                <div style={{
+                  background: 'rgba(168, 85, 247, 0.1)',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.82rem',
+                  color: '#c084fc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <Sparkles size={16} />
+                  <span>Values extracted via Gemini AI Vision! Please review and adjust if needed.</span>
+                </div>
+              )}
+
               {foodData.source === 'barcode' && (
                 <div style={{
                   background: 'rgba(56, 189, 248, 0.1)',
@@ -1033,24 +1702,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   gap: '8px'
                 }}>
                   <Barcode size={16} />
-                  <span>Values retrieved from barcode database (Barcode: {foodData.barcode || 'scanned'}). Review and adjust as needed.</span>
-                </div>
-              )}
-
-              {foodData.source === 'ocr_label' && (
-                <div style={{
-                  background: 'rgba(168, 85, 247, 0.1)',
-                  border: '1px solid rgba(168, 85, 247, 0.3)',
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.82rem',
-                  color: '#c084fc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <Camera size={16} />
-                  <span>Values parsed from nutrition facts label! You can fine-tune or complete any field below.</span>
+                  <span>Values retrieved from barcode database (Barcode: {foodData.barcode || 'scanned'}).</span>
                 </div>
               )}
 
@@ -1061,7 +1713,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Non-Fat Greek Yogurt, Grilled Chicken Breast, Quinoa..."
+                    placeholder="e.g. Banana, Raw / Greek Yogurt / Chicken Breast..."
                     value={foodData.name}
                     onChange={(e) => setFoodData({ ...foodData, name: e.target.value })}
                     className="input-field"
@@ -1097,7 +1749,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 gap: '14px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="input-label" style={{ color: 'var(--primary-light)' }}>
+                  <label className="input-label" style={{ color: 'var(--primary-light)', margin: 0 }}>
                     Primary Nutritional Profile (Per Serving)
                   </label>
                   <div style={{ width: '180px' }}>
@@ -1174,7 +1826,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                   </div>
                 </div>
 
-                {/* Real-time Macro Math Helper & One-Click Auto-Calculate */}
+                {/* Macro Math Estimation Helper */}
                 {(() => {
                   const p = parseFloat(foodData.protein) || 0
                   const c = parseFloat(foodData.carbs) || 0
@@ -1237,7 +1889,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 })()}
               </div>
 
-              {/* Collapsible Micronutrients Section */}
+              {/* Collapsible Micronutrients */}
               <div style={{
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
@@ -1262,7 +1914,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Sparkles size={16} color="var(--primary-light)" />
-                    Micronutrients & Vitamins (Optional for precision tracking)
+                    Micronutrients & Vitamins (Optional precision tracking)
                   </span>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     {showMicros ? 'Hide ▲' : 'Expand ▼'}
@@ -1383,7 +2035,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 )}
               </div>
 
-              {/* Collapsible Unhealthy Habits & Caution Nutrients Section */}
+              {/* Collapsible Cautions */}
               <div style={{
                 border: '1px solid rgba(244, 63, 94, 0.25)',
                 borderRadius: 'var(--radius-md)',
@@ -1409,7 +2061,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <ShieldAlert size={16} color="#f43f5e" />
-                    <span>Unhealthy Food Habits & Caution Nutrients (Sodium, Trans Fat, Cholesterol...)</span>
+                    <span>Caution Nutrients (Sodium, Trans Fat, Cholesterol...)</span>
                   </span>
                   <span style={{ fontSize: '0.78rem', color: '#f43f5e', fontWeight: '700' }}>
                     {showCautions ? 'Hide ▲' : 'Expand ▼'}
@@ -1425,25 +2077,18 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                     background: 'rgba(0, 0, 0, 0.25)'
                   }}>
                     <div className="input-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Sodium / Salt (mg)</label>
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 2300mg</span>
-                      </div>
+                      <label className="input-label" style={{ fontSize: '0.7rem' }}>Sodium (mg)</label>
                       <input
                         type="number"
                         placeholder="0"
                         value={foodData.cautions?.sodium || ''}
                         onChange={(e) => handleCautionChange('sodium', e.target.value)}
                         className="input-field"
-                        style={{ borderColor: detectedFields.sodium ? '#38bdf8' : undefined }}
                       />
                     </div>
 
                     <div className="input-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Trans Fat (g)</label>
-                        <span style={{ fontSize: '0.62rem', color: '#f43f5e', fontWeight: '700' }}>0g limit</span>
-                      </div>
+                      <label className="input-label" style={{ fontSize: '0.7rem' }}>Trans Fat (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1451,30 +2096,22 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                         value={foodData.cautions?.transFat || ''}
                         onChange={(e) => handleCautionChange('transFat', e.target.value)}
                         className="input-field"
-                        style={{ borderColor: detectedFields.transFat ? '#f43f5e' : undefined }}
                       />
                     </div>
 
                     <div className="input-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Cholesterol (mg)</label>
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 300mg</span>
-                      </div>
+                      <label className="input-label" style={{ fontSize: '0.7rem' }}>Cholesterol (mg)</label>
                       <input
                         type="number"
                         placeholder="0"
                         value={foodData.cautions?.cholesterol || ''}
                         onChange={(e) => handleCautionChange('cholesterol', e.target.value)}
                         className="input-field"
-                        style={{ borderColor: detectedFields.cholesterol ? '#f59e0b' : undefined }}
                       />
                     </div>
 
                     <div className="input-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Saturated Fat (g)</label>
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 20g</span>
-                      </div>
+                      <label className="input-label" style={{ fontSize: '0.7rem' }}>Saturated Fat (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1482,15 +2119,11 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                         value={foodData.cautions?.saturatedFat || ''}
                         onChange={(e) => handleCautionChange('saturatedFat', e.target.value)}
                         className="input-field"
-                        style={{ borderColor: detectedFields.saturatedFat ? '#fb923c' : undefined }}
                       />
                     </div>
 
                     <div className="input-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <label className="input-label" style={{ fontSize: '0.7rem' }}>Added Sugars (g)</label>
-                        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>&le; 36g</span>
-                      </div>
+                      <label className="input-label" style={{ fontSize: '0.7rem' }}>Added Sugars (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1498,7 +2131,6 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                         value={foodData.cautions?.addedSugar || ''}
                         onChange={(e) => handleCautionChange('addedSugar', e.target.value)}
                         className="input-field"
-                        style={{ borderColor: detectedFields.addedSugar ? '#ec4899' : undefined }}
                       />
                     </div>
                   </div>
@@ -1511,7 +2143,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
         </div>
 
         {/* Modal Footer */}
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ padding: '14px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <button
             type="button"
             onClick={() => { stopCameraScanner(); onClose(); }}
@@ -1529,16 +2161,26 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
               style={{ minWidth: '220px' }}
             >
               <Check size={16} />
-              <span>Save to Food Database</span>
+              <span>Save & Log Food</span>
+            </button>
+          ) : activeMode === 'search' && selectedWholeFood ? (
+            <button
+              type="button"
+              onClick={handleLogScaledWholeFood}
+              className="btn btn-primary"
+              style={{ minWidth: '220px' }}
+            >
+              <Check size={16} />
+              <span>Log {scaledWholeFood?.name} ({scaledWholeFood?.serving})</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setActiveMode('manual')}
-              className="btn btn-primary"
-              style={{ minWidth: '220px' }}
+              className="btn btn-secondary"
+              style={{ minWidth: '200px' }}
             >
-              <span>Continue to Review & Edit</span>
+              <span>Custom Manual Entry</span>
               <ArrowRight size={16} />
             </button>
           )}
