@@ -74,7 +74,7 @@ A modern, science-based diet and healthy lifestyle application built with React,
     - Next-generation camera & photo nutrition table extraction powered by Google Gemini 1.5 Flash
     - High-accuracy parsing of bilingual English & Hebrew (סימון תזונתי) nutrition panels
     - Environment configuration: environment variable (`VITE_GEMINI_API_KEY`) in `.env` with automatic local OCR fallback
-
+GEMINI_API_KEY
 ---
 
 ## 🛠️ Project Structure
@@ -150,7 +150,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
 # Google Gemini Flash API Key for AI Vision Label Scanning (Optional)
 # Free key available at https://aistudio.google.com/app/apikey
 VITE_GEMINI_API_KEY=your-gemini-api-key-here
-```
+GEMINI_API_KEY
 
 ### 3. Start Development Server
 ```bash

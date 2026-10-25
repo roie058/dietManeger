@@ -544,7 +544,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
 
       // If project has not set an API key in .env, inform user
       if (aiErr.code === 'NO_API_KEY') {
-        setOcrError('No Gemini API key found in .env (VITE_GEMINI_API_KEY). Using local OCR fallback or manual entry.')
+        setOcrError('No Gemini API key found in .env (GEMINI_API_KEY). Using local OCR fallback or manual entry.')
       } else {
         setOcrError(`AI Vision Notice: ${aiErr.message}. You can retry or use the local OCR parser.`)
       }
@@ -1403,7 +1403,7 @@ export default function AddFoodModal({ isOpen, onClose, onSave, initialQuery = '
                     color: hasApiKey ? '#34d399' : '#f59e0b',
                     fontWeight: 500
                   }}
-                  title={hasApiKey ? 'Gemini API key active from environment (.env)' : 'VITE_GEMINI_API_KEY is missing in your .env file'}
+                  title={hasApiKey ? 'Gemini API key active from environment (.env)' : 'GEMINI_API_KEY is missing in your .env file'}
                 >
                   <Key size={13} color={hasApiKey ? '#34d399' : '#f59e0b'} />
                   <span>{hasApiKey ? 'AI Key Active (ENV)' : 'Missing .env Key'}</span>

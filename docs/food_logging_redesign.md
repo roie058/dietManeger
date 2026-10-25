@@ -11,7 +11,7 @@ The goal of this redesign is to make everyday food logging effortless and practi
 | :--- | :--- | :--- | :--- |
 | **DEC-01** | **Curated Local Whole Foods Index + Gemini Flash Vision** | Live USDA REST API; All-in-one AI query generation | Instant zero-latency search for staple foods (like bananas), zero API costs for regular lookups, and state-of-the-art accuracy for label image parsing. |
 | **DEC-02** | **Portion Presets + Gram Weight Adjuster** | 100g only; Count units only | Provides the best of both worlds: convenient 1-tap everyday presets (e.g. "1 medium banana ~118g") while allowing fine-grained scale precision. |
-| **DEC-04** | **Environment Configuration for Gemini API Key** | Client BYOK drawer; Edge function | Managed centrally via `.env` (`VITE_GEMINI_API_KEY`) for clean security and streamlined UX with no user prompt needed. |
+| **DEC-04** | **Environment Configuration for Gemini API Key** | Client BYOK drawer; Edge function | Managed centrally via `.env` (`GEMINI_API_KEY`) for clean security and streamlined UX with no user prompt needed. |
 
 ---
 
@@ -86,6 +86,6 @@ Each food record follows the structure:
 
 ## 5. Technical Specifications & Dependencies
 
-- **Environment Variable**: `VITE_GEMINI_API_KEY` configured in `.env`.
+- **Environment Variable**: `GEMINI_API_KEY` configured in `.env`.
 - **State Management**: Existing React state within `AddFoodModal.jsx` and `App.jsx`.
 - **Zero New Heavy Dependencies**: Standard `fetch` calls without requiring heavyweight external SDKs.

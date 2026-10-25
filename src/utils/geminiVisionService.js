@@ -6,7 +6,7 @@
 
 // Helper to get active API key strictly from environment variable
 export function getGeminiApiKey() {
-  return (import.meta.env.VITE_GEMINI_API_KEY || '').trim()
+  return (import.meta.env.GEMINI_API_KEY || '').trim()
 }
 
 /**
@@ -101,7 +101,7 @@ export async function parseNutritionLabelWithGemini(fileOrBlob) {
   const apiKey = getGeminiApiKey()
 
   if (!apiKey) {
-    const err = new Error('No Gemini API key found. Please configure VITE_GEMINI_API_KEY in your .env file.')
+    const err = new Error('No Gemini API key found. Please configure GEMINI_API_KEY in your .env file.')
     err.code = 'NO_API_KEY'
     throw err
   }
