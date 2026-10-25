@@ -18,7 +18,7 @@ import {
   DEFAULT_RECIPES
 } from './data/initialData'
 import { RotateCcw, X, CheckCircle2 } from 'lucide-react'
-import { loadStorage, saveStorage, requestPersistentStorage } from './utils/storage'
+import { loadStorage, saveStorage, requestPersistentStorage, restoreLatestSafetySnapshot } from './utils/storage'
 import CloudSyncModal from './components/CloudSyncModal'
 import MobileBottomNav from './components/MobileBottomNav'
 import MobileQuickAddFab from './components/MobileQuickAddFab'
@@ -27,6 +27,8 @@ import {
   getCurrentUser, 
   onAuthStateChange, 
   uploadLocalDataToCloud, 
+  syncAndMergeCloudData,
+  subscribeToRealtimeSync,
   isAutoSyncEnabled 
 } from './utils/cloudSync'
 
@@ -145,25 +147,68 @@ export default function App() {
     saveStorage('nutriflow_recipes', recipes)
   }, [recipes])
 
+  const isInitialSyncCompletedRef = useRef(false)
+
   // Mount effect: request browser persistent storage and initialize cloud auth listener
   useEffect(() => {
     requestPersistentStorage()
 
-    getCurrentUser().then(user => setCloudUser(user))
-    const unsubscribe = onAuthStateChange((event, sessionUser) => {
-      setCloudUser(sessionUser)
+    getCurrentUser().then(async (user) => {
+      setCloudUser(user)
+      if (user) {
+        try {
+          const res = await syncAndMergeCloudData()
+          if (res?.data) {
+            handleReloadAllState()
+          }
+        } catch (err) {
+          console.warn('[NutriFlow] Initial cloud pull/merge notice:', err.message)
+        }
+        isInitialSyncCompletedRef.current = true
+      }
     })
+
+    const unsubscribe = onAuthStateChange(async (event, sessionUser) => {
+      setCloudUser(sessionUser)
+      if (sessionUser) {
+        try {
+          const res = await syncAndMergeCloudData()
+          if (res?.data) {
+            handleReloadAllState()
+          }
+        } catch (err) {
+          console.warn('[NutriFlow] Auth change cloud pull/merge notice:', err.message)
+        }
+        isInitialSyncCompletedRef.current = true
+      }
+    })
+
     return () => {
       if (unsubscribe) unsubscribe()
     }
   }, [])
 
-  // Background auto-sync to cloud when data changes (debounced by 3.5s)
+  // Live Realtime listener across devices
   useEffect(() => {
-    if (!cloudUser || !isAutoSyncEnabled()) return
+    if (!cloudUser) return
+
+    const unsubscribeRealtime = subscribeToRealtimeSync(cloudUser.id, () => {
+      handleReloadAllState()
+      showUndoToast('Data synced live from your other device!', null)
+    })
+
+    return () => {
+      if (unsubscribeRealtime) unsubscribeRealtime()
+    }
+  }, [cloudUser])
+
+  // Background auto-sync to cloud when data changes (debounced by 3.5s)
+  // Non-destructive: merges bidirectional changes so no devices overwrite each other
+  useEffect(() => {
+    if (!cloudUser || !isAutoSyncEnabled() || !isInitialSyncCompletedRef.current) return
 
     const timer = setTimeout(() => {
-      uploadLocalDataToCloud().catch(err => {
+      syncAndMergeCloudData().catch(err => {
         console.warn('[NutriFlow] Auto-sync notice:', err.message)
       })
     }, 3500)
@@ -171,7 +216,7 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [profile, dailyHistory, shoppingItems, foodLibrary, recipes, isNetCalorieMode, streakCount, cloudUser])
 
-  // Reload all state if cloud sync or file import restores data
+  // Reload all state if cloud sync, realtime broadcast, or file import restores data
   const handleReloadAllState = () => {
     setProfile(loadStorage('nutriflow_profile', DEFAULT_USER_PROFILE))
     setDailyHistory(loadStorage('nutriflow_history', dailyHistory))
@@ -180,6 +225,17 @@ export default function App() {
     setRecipes(loadStorage('nutriflow_recipes', DEFAULT_RECIPES))
     setIsNetCalorieMode(loadStorage('nutriflow_net_mode', false))
     setStreakCount(loadStorage('nutriflow_streak', 6))
+  }
+
+  // Restore latest safety snapshot in case user wants an instant rollback
+  const handleRestoreSafetySnapshot = () => {
+    const success = restoreLatestSafetySnapshot()
+    if (success) {
+      handleReloadAllState()
+      showUndoToast('State restored from safety snapshot!', null)
+    } else {
+      showUndoToast('No safety snapshot found to restore.', null)
+    }
   }
 
   // --- Actions with Undo Support ---
@@ -402,12 +458,16 @@ export default function App() {
 
   // Recipe Handlers
   const handleSaveRecipe = (recipeData) => {
+    const stampedRecipe = {
+      ...recipeData,
+      updatedAt: recipeData.updatedAt || new Date().toISOString()
+    }
     setRecipes(prev => {
-      const exists = prev.some(r => r.id === recipeData.id)
+      const exists = prev.some(r => r.id === stampedRecipe.id)
       if (exists) {
-        return prev.map(r => r.id === recipeData.id ? recipeData : r)
+        return prev.map(r => r.id === stampedRecipe.id ? stampedRecipe : r)
       }
-      return [recipeData, ...prev]
+      return [stampedRecipe, ...prev]
     })
   }
 

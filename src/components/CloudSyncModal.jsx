@@ -23,7 +23,7 @@ import {
   signOutUser, 
   getCurrentUser, 
   uploadLocalDataToCloud, 
-  syncCloudAndLocal, 
+  syncAndMergeCloudData, 
   getLastSyncTime, 
   isAutoSyncEnabled, 
   setAutoSyncEnabled 
@@ -32,7 +32,9 @@ import {
   exportAllDataAsJson, 
   importDataFromJson, 
   checkStoragePersistence, 
-  requestPersistentStorage 
+  requestPersistentStorage,
+  getLatestSafetySnapshot,
+  restoreLatestSafetySnapshot
 } from '../utils/storage'
 
 export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
@@ -58,6 +60,7 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
 
   // Browser Storage Persistence
   const [isPersisted, setIsPersisted] = useState(false)
+  const [latestSnapshot, setLatestSnapshot] = useState(() => getLatestSafetySnapshot())
 
   // File import ref
   const fileInputRef = useRef(null)
@@ -72,6 +75,7 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
     getCurrentUser().then(u => setUser(u))
     setLastSync(getLastSyncTime())
     setAutoSync(isAutoSyncEnabled())
+    setLatestSnapshot(getLatestSafetySnapshot())
 
     // Check browser persistence
     checkStoragePersistence().then(p => setIsPersisted(p))
@@ -94,19 +98,21 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
         } else {
           setAuthSuccess('Account created and signed in successfully!')
           setUser(res.user)
-          // Automatically run initial sync
-          await syncCloudAndLocal()
+          // Automatically run initial smart non-destructive merge
+          await syncAndMergeCloudData()
           setLastSync(getLastSyncTime())
+          setLatestSnapshot(getLatestSafetySnapshot())
           if (onDataRestored) onDataRestored()
         }
       } else {
         const res = await signInWithEmail(authEmail, authPassword)
         setAuthSuccess('Signed in successfully!')
         setUser(res.user)
-        // Automatically sync on sign in
-        const syncResult = await syncCloudAndLocal()
+        // Automatically smart-merge on sign in
+        await syncAndMergeCloudData()
         setLastSync(getLastSyncTime())
-        if (syncResult.action === 'downloaded' && onDataRestored) {
+        setLatestSnapshot(getLatestSafetySnapshot())
+        if (onDataRestored) {
           onDataRestored()
         }
       }
@@ -131,10 +137,11 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
     setSyncLoading(true)
     setSyncStatusMsg(null)
     try {
-      const res = await syncCloudAndLocal()
+      const res = await syncAndMergeCloudData()
       setLastSync(getLastSyncTime())
-      setSyncStatusMsg({ type: 'success', text: res.message || 'Data synced with cloud!' })
-      if (res.action === 'downloaded' && onDataRestored) {
+      setLatestSnapshot(getLatestSafetySnapshot())
+      setSyncStatusMsg({ type: 'success', text: res.message || 'Data merged safely across devices!' })
+      if (onDataRestored) {
         onDataRestored()
       }
     } catch (err) {
@@ -144,12 +151,23 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
     }
   }
 
+  const handleRestoreSnapshot = () => {
+    const success = restoreLatestSafetySnapshot()
+    if (success) {
+      setSyncStatusMsg({ type: 'success', text: 'Local state restored successfully from safety snapshot!' })
+      if (onDataRestored) onDataRestored()
+    } else {
+      setSyncStatusMsg({ type: 'error', text: 'Could not restore snapshot.' })
+    }
+  }
+
   const handleForceUpload = async () => {
     setSyncLoading(true)
     setSyncStatusMsg(null)
     try {
       await uploadLocalDataToCloud()
       setLastSync(getLastSyncTime())
+      setLatestSnapshot(getLatestSafetySnapshot())
       setSyncStatusMsg({ type: 'success', text: 'Local data pushed to cloud successfully!' })
     } catch (err) {
       setSyncStatusMsg({ type: 'error', text: err.message || 'Upload to cloud failed.' })
@@ -524,6 +542,22 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
                     </label>
                   </div>
 
+                  {/* Live Realtime Status Pill */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    color: '#34d399',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    padding: '8px 12px',
+                    borderRadius: '8px'
+                  }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                    <span>Realtime Sync: Changes broadcast live between phone & computer without overwriting.</span>
+                  </div>
+
                   {/* Sync Action Buttons */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <button
@@ -531,10 +565,10 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
                       onClick={handleManualSync}
                       disabled={syncLoading}
                       className="btn btn-primary"
-                      style={{ padding: '12px', fontSize: '0.9rem', justifyContent: 'center' }}
+                      style={{ padding: '12px', fontSize: '0.88rem', justifyContent: 'center' }}
                     >
                       <RefreshCw size={16} className={syncLoading ? 'animate-spin' : ''} />
-                      <span>{syncLoading ? 'Syncing...' : 'Sync Cloud & Local'}</span>
+                      <span>{syncLoading ? 'Merging...' : 'Merge & Sync Live'}</span>
                     </button>
 
                     <button
@@ -542,12 +576,44 @@ export default function CloudSyncModal({ isOpen, onClose, onDataRestored }) {
                       onClick={handleForceUpload}
                       disabled={syncLoading}
                       className="btn btn-secondary"
-                      style={{ padding: '12px', fontSize: '0.9rem', justifyContent: 'center' }}
+                      style={{ padding: '12px', fontSize: '0.88rem', justifyContent: 'center' }}
                     >
                       <Upload size={16} />
                       <span>Push Local to Cloud</span>
                     </button>
                   </div>
+
+                  {/* Automatic Safety Snapshot Rollback Option */}
+                  {latestSnapshot && (
+                    <div style={{
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      fontSize: '0.82rem'
+                    }}>
+                      <div>
+                        <div style={{ color: '#ffffff', fontWeight: '600' }}>
+                          Safety Snapshot Available
+                        </div>
+                        <div style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.74rem' }}>
+                          Recorded: {new Date(latestSnapshot.timestamp).toLocaleTimeString()} ({latestSnapshot.recipeCount || 0} recipes preserved)
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRestoreSnapshot}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '0.76rem', padding: '5px 10px', whiteSpace: 'nowrap' }}
+                      >
+                        Roll Back Snapshot
+                      </button>
+                    </div>
+                  )}
 
                   {syncStatusMsg && (
                     <div style={{

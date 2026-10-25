@@ -57,4 +57,20 @@ CREATE TRIGGER on_nutriflow_user_data_updated
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
--- Done! Your NutriFlow database is fully secured and ready for real-time cloud sync.
+-- 8. Enable Realtime broadcast on this table so updates propagate live across phone & computer
+ALTER TABLE public.nutriflow_user_data REPLICA IDENTITY FULL;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'nutriflow_user_data'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.nutriflow_user_data;
+  END IF;
+END $$;
+
+-- Done! Your NutriFlow database is fully secured and ready for live conflict-free cross-device sync.
+
